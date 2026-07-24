@@ -109,6 +109,7 @@ def test_required_oma_composition_charges_er_exactly_once():
         thermal
         + lb.rin_penalty_db
         + lb.shot_penalty_db
+        + lb.noise_interaction_db
         + sum((lb.penalties_db or {}).values())
     )
     assert lb.sensitivity_oma_dbm == pytest.approx(expected, abs=1e-12)
@@ -131,7 +132,8 @@ def test_required_oma_composition_charges_er_exactly_once():
     delta = lb.sensitivity_oma_dbm - hi_er.sensitivity_oma_dbm
     assert delta == pytest.approx(
         (lb.rin_penalty_db - hi_er.rin_penalty_db)
-        + (lb.shot_penalty_db - hi_er.shot_penalty_db),
+        + (lb.shot_penalty_db - hi_er.shot_penalty_db)
+        + (lb.noise_interaction_db - hi_er.noise_interaction_db),
         abs=1e-12,
     )
     # ... and that RIN difference is nowhere near the Agrawal ER factor,

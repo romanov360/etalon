@@ -40,13 +40,17 @@ eigenvalue, so the largest-n_eff modes converge first.
 
 Honesty limits
 --------------
-Budgeting-to-design grade, not signoff. Expect roughly 1e-3 absolute
-n_eff accuracy for well-guided modes at the default dx = 0.02 um; weakly
-guided modes near cutoff and quasi-TM modes with strong corner fields are
-less accurate. There is no polarization coupling (no hybrid modes, no
-TE/TM anti-crossings), no PML (leaky/radiating modes are truncated by the
-Dirichlet wall), and no loss. Use a full-vectorial solver for final
-signoff.
+Budgeting-to-design grade, not signoff. The ~1e-3 n_eff accuracy at the
+default dx = 0.02 um is DISCRETIZATION accuracy relative to the exact
+semi-vectorial solution. The semi-vectorial approximation itself (no
+polarization coupling: no hybrid modes, no TE/TM anti-crossings) deviates
+from full-vectorial n_eff by a few 1e-2 for high-contrast strips — e.g.
+~4e-2 for the 500x220 nm SOI strip TE0, where EIM carries a similar-size
+bias in the same direction; the FD-minus-EIM difference therefore probes
+the EIM's *lateral* approximation, not its full error. Weakly guided
+modes near cutoff and quasi-TM modes with strong corner fields are less
+accurate still. No PML (leaky/radiating modes are truncated by the
+Dirichlet wall), no loss. Use a full-vectorial solver for final signoff.
 
 Conventions: wavelengths and dimensions in um; quasi-TE means dominant
 E-field parallel to the wafer plane. Field arrays are indexed
@@ -63,6 +67,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
 from . import materials
+from .waveguide import slab_neffs
 
 
 @dataclass(frozen=True, eq=False)
@@ -310,6 +315,14 @@ def solve_modes(
     vals, vecs = spla.eigs(a, k=k_req, sigma=sigma, which="LM")
 
     n_min = max(n_clad, n_box)
+    if slab_um > 0.0:
+        # A rib's residual slab supports laterally-unbound slab modes: any
+        # eigenvector with n_eff below the slab's fundamental effective
+        # index is lateral radiation discretized by the Dirichlet wall
+        # (pad-dependent artifact), not a guided mode of the rib.
+        slab_modes = slab_neffs(n_core, n_clad, n_box, slab_um, wl_um, pol)
+        if slab_modes:
+            n_min = max(n_min, slab_modes[0])
     modes: list[FdMode] = []
     order = np.argsort(-vals.real)
     for m in order:

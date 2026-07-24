@@ -1,0 +1,320 @@
+{
+  "summary": "Adversarial review of the 7 new SiPhon extension modules",
+  "agentCount": 7,
+  "logs": [
+    "launching 7 adversarial reviewers (read-only)",
+    "review done: 14 findings across 7 modules"
+  ],
+  "result": {
+    "shot-noise": {
+      "module": "shot-noise",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/link.py",
+          "line": 315,
+          "claim": "The docstrings (module header line 20-21, shot_penalty_db line 315-318, LinkBudget line 380-381, sensitivity_oma_dbm line 467-468) claim composing RIN and shot as independent dB add-ons is 'standard, mildly pessimistic'; within the module's own noise model the composition is actually OPTIMISTIC in every regime, so margin_db overstates margin.",
+          "evidence": "Joint self-consistent solve of u*R/(2(M-1)) = q*sqrt(i_n^2 + 2*q_e*(R*k*u+I_d)*f_n + (R*k*u)^2*RIN*f_n) via brentq vs rin_penalty_db + shot_penalty_db: DR4-class RX (R=0.8, 16 pA/rtHz), 53.125 GBd PAM4, ER 5 dB, RIN -140: indep 1.2209 dB vs joint 1.2851 dB (0.064 dB optimistic — the shipped preset_pluggable_dr4 operating point); 106.25 GBd PAM4, ER 4 dB, RIN -140: indep 5.985 dB vs joint 7.044 dB (1.06 dB optimistic). Sign is negative (optimistic) in all 27 tested combos. Cause: both noises are signal-dependent (RIN variance ~u^2, shot ~u), so each single-penalty solve undercounts the variance at the larger joint operating point; the classic 'summing dB penalties is conservative' argument only holds for signal-independent noises. Note the shipped presets are barely affected (DR4 0.064 dB, CPO 0.0002 dB), so this is a misleading-doc/edge-regime issue, not wrong numbers in the committed presets.",
+          "suggested_fix": "Either solve the joint quadratic (thermal + shot + RIN at the top eye) in one shot inside LinkBudget.sensitivity_oma_dbm, or correct the docstrings: the independent dB composition of signal-dependent penalties is mildly OPTIMISTIC (up to ~1 dB at high baud / low ER / -140 dB/Hz RIN), and margins should not be read as conservative floors."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/examples/06_architecture_pareto.py",
+          "line": 116,
+          "claim": "The printed 'Pareto-efficient subset' lists every distinct Pareto point three times (once per lane count) because lane count is exactly degenerate in this sweep, cluttering the headline output.",
+          "evidence": "Reproduced the sweep: 36 configs, pareto() returns 12 rows but only 4 distinct (margin, pJ/bit) pairs, each with multiplicity 3. Degeneracy is exact because every N_LANES value (4, 8, 16) is divisible by every LASER_SHARED_BY value (1, 4), so ceil(n_lanes/shared)/n_lanes — the only lane-count-dependent factor in energy_per_bit_pj — is constant (1 or 0.25), and margin_db never depends on lanes. The closing prose acknowledges the degeneracy but the table still prints triplicates. Arithmetic itself is correct: hand-recomputed pJ/bit (laser (4*4.467 mW/0.10 + 20 mW)/(4*26.5625 Gb/s) = 1.8699, tuning 0.0753, total 3.2452) matches energy_per_bit_pj exactly, and the front is a valid non-dominated staircase.",
+          "suggested_fix": "Deduplicate points on (margin, pJ/bit) before Pareto extraction/printing, or include a non-divisible lane/sharing combination (e.g. laser_shared_by=3 or n_lanes=6) so the overhead term actually breaks the proportionality the text discusses."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/link.py",
+          "line": 165,
+          "claim": "Tia.bandwidth_ghz is validated but never consumed by any calculation, so sensitivities/penalties use f_n = 0.75*baud even when that exceeds the TIA's stated 3-dB bandwidth — an API trap the new example exercises.",
+          "evidence": "grep over src/ and examples/: bandwidth_ghz appears only in the dataclass field, its docstring, and the __post_init__ validation; no formula reads it. Example 06 sweeps the CPO preset (Tia bandwidth_ghz=25.0) to 106.25 GBd PAM4, where the model quietly assumes a 79.7 GHz noise bandwidth receiver behind a 25 GHz TIA and awards that config the best Pareto point (+7.0 dB margin, 1.54 pJ/bit). The module docstring does disclose 'no bandwidth/equalization modeling', so this is a consistency/trap note (pre-existing field, newly stressed by the example), not a wrong formula.",
+          "suggested_fix": "Either drop the unused field, or have LinkBudget warn/raise when NOISE_BANDWIDTH_FRACTION*rate_gbd exceeds tia.bandwidth_ghz (or ~1.5x it), and note in example 06 that the 106.25 GBd points assume a rescaled receiver."
+        }
+      ],
+      "checks_run": "Re-derived shot quadratic from implicit top-eye equation (a,b,c and positive root verified symbolically; penalty>=0 proven via a*u0^2=i_n^2<=c). brentq cross-check of shot_penalty_db over ~100 combos (ER 3/5/inf, dark 0/10/1e5 nA, S_i 0.01..1e6 pA/rtHz, NRZ/PAM4/PAM8, 26.6-106.25 GBd): agreement <1e-9 dB incl. shot-dominated 22.8 dB case. Verified k=ER/(ER-1) matches rin_penalty_db (r'=r*k) and P_top=OMA*ER/(ER-1) algebra; re-derived rin closed form -5log10(1-x^2); q_from_ber Gray/PAM SER algebra; unit conversions nA->A, pA/rtHz->A, f_n=0.75*baud*1e9, W->dBm. Verified sensitivity_oma_dbm and report() compose thermal+RIN+shot+penalties identically (test asserts to 1e-12; report waterfall re-read). Joint RIN+shot self-consistent solve vs independent dB sum at presets and 27 corner combos (found systematic optimism, max 1.06 dB). Ran tests/test_shot_noise.py (7 passed). Reproduced example 06 sweep in /tmp: pJ/bit hand-recomputed exactly (1 mW/Gbps = 1 pJ/bit, fJ*1e-3, ceil sharing), Pareto dominance predicate and staircase verified, lane-count degeneracy quantified (12 front rows, 4 distinct). grep confirmed Tia.bandwidth_ghz unused. No repo files touched; scratch under /tmp/shotreview only."
+    },
+    "extract": {
+      "module": "extract",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/extract.py",
+          "line": 317,
+          "claim": "With default (unbounded) parameters, least_squares can step a parameter outside the model's validity domain and the fit dies mid-optimization with the model's constructor ValueError instead of a fit-level error or a converged result; any measured trace whose best fit sits near a domain edge triggers it.",
+          "evidence": "Reproduced: fit_transmission(DirectionalCoupler, {'coupling': 0.9}, wl, measured=np.full(11, 0.05), inport='in0', outport='out1') — measured cross power +0.05 dB, i.e. a plausibly noisy/imperfectly-normalized trace — raises 'ValueError: coupling must be a power fraction in [0, 1]; got 1.0051860969816293' from inside the trf iteration (build() called at the trial point). No fit result is returned. The library's own test for this component quietly passes bounds={'coupling': (1e-4, 0.999)} to avoid this; fit_ring_add_drop protects itself with _RING_BOUNDS, but the generic fit_transmission defaults lb/ub to +/-inf (line 199-200) while every component model validates its domain in __post_init__.",
+          "suggested_fix": "Document loudly in fit_transmission that domain-constrained parameters (couplings, kappas, losses) must be given bounds, and/or catch ValueError from build() inside residual() and re-raise with a message naming the offending trial parameter values and suggesting bounds."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/tests/test_extract.py",
+          "line": 57,
+          "claim": "Test comment overstates the neff0 perturbation by 10x: 3e-4 is ~3.9% of the resonance-order spacing wl0/L = 7.75e-3, not '~40%', so the suite never actually exercises the coarse pre-scan at a large comb misalignment.",
+          "evidence": "3e-4 / (1.55/200) = 0.0387 (~4% of one order), vs the comment '~40% of a resonance-order spacing'. Independent probe shows the code itself is fine — fit_ring_add_drop recovers all parameters (rms 0.0504 dB, dneff0 < 1e-4 order) for true offsets of 0.04, 0.40, and 0.49 orders — so this is a wrong comment plus a coverage gap (the only other neff0 stress is the default guess 2.4 vs 2.35 case, which is untested), not a functional bug.",
+          "suggested_fix": "Change the perturbation to 3e-3 (genuinely ~40% of an order, which the scan handles per my probe) or fix the comment to '~4%'; ideally add a test at ~0.4 order offset to pin the pre-scan behavior."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/extract.py",
+          "line": 212,
+          "claim": "There is no way to hold one of the five ring parameters fixed in fit_ring_add_drop (e.g. loss_db_per_cm known from a de-embedding structure): degenerate bounds (v, v) are rejected by the 'lo < hi' check and the wrapper exposes no fixed-parameter passthrough, so users must resort to (v, v+eps) hacks in exactly the (kappa1, kappa2, loss) degeneracy scenario the docstring warns about.",
+          "evidence": "_pack_bounds raises ValueError('bounds for ... must satisfy lo < hi') for lo == hi, and fit_ring_add_drop's signature forwards only x0/bounds — _RING_FREE is always the full 5-parameter set while **fixed is reserved for circumference_um/wl0_um internally. The module docstring (lines 33-38) itself says loss and coupling trade off near critical coupling, which is precisely when pinning a known loss is the standard remedy.",
+          "suggested_fix": "Accept a fixed={'name': value} argument in fit_ring_add_drop (removing those keys from params0/bounds and merging into the build kwargs), or allow lo == hi as a documented way to freeze a parameter."
+        }
+      ],
+      "checks_run": "Ran tests/test_extract.py (21 pass) and examples/05 end-to-end (recovers truth, rms 0.0496 vs 0.05 noise). Re-derived: dB domain 10log10(|S|^2) with 1e-16 floor = -160 dB; S[out,in] indexing vs b_i=S_ij a_j convention (component branch and Circuit.transmission branch both correct); DirectionalCoupler cross power = coupling*10^(-loss/10) matches closed-form test; loss unit conversion um->cm (1e-4). Proved the neff0 order spacing wl0/L is EXACT under the linearized dispersion (dphi/dneff0 = 2piL/wl0 wavelength-independent; numeric max |mag| diff 7e-12 across 3 FSRs), validating the +/-0.5-order 61-point pre-scan. Adversarial fits: neff0 offsets of 0.04/0.40/0.49 order (all recovered), high-Q kappa~0.005 with default x0 (recovered within documented valley, rms at floor), ng guess 17% and 46% off (former recovered; latter returns loud rms 4.7 dB, not silent), sub-FSR span (ng sticks to guess as documented), wl0 outside span (works). Verified residual_rms_db and cost bit-exact against independently recomputed pooled two-path residuals (dict-measured case honest). Error-path probes: bounds arity, array-valued params0, dict+ports collision, and the unbounded-parameter mid-fit crash (reproduced, reported). Checked for duck-typing collisions: no non-Circuit class defines transmission+external_ports. Could not construct silent garbage with success=True."
+    },
+    "correlated-mc": {
+      "module": "correlated-mc",
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/montecarlo.py",
+          "line": 148,
+          "claim": "CommonDifferential.sample spuriously raises 'truncation bounds reject nearly all samples' whenever [low, high] lies more than a few sigma_common from mean, even when the TOTAL distribution has large probability mass inside the bounds; in the sigma_common=0 limit any bound window excluding the mean always raises, while the equivalent Normal samples fine.",
+          "evidence": "Numeric repro (uv run, /tmp/mc_check2.py): CommonDifferential(mean=0, sigma_common=0.0, sigma_diff=1.0, low=2.0, high=3.0).sample(100, 4, rng) raises ValueError, while Normal('x', 0.0, 1.0, low=2.0, high=3.0) (identical marginal) samples correctly. Worse: CommonDifferential(mean=0, sigma_common=0.3, sigma_diff=2.0, low=1.5, high=4.0) also raises, yet 20.5% of the unconditioned total N(0, 2.02) lies in [1.5, 4] (scipy check: Phi(4/2.022)-Phi(1.5/2.022)=0.205). Root cause: the hierarchical scheme at line 144 demands mean+common itself be in [low, high], which for the window at 5*sigma_common is essentially unreachable by resampling, even though the differential part reaches the window easily. The error message ('bounds reject nearly all samples') is factually wrong in this case.",
+          "suggested_fix": "Truncate the common draw to the feasibility condition actually needed (e.g. require mean+common within [low - k*sigma_diff, high + k*sigma_diff], or resample common from its exact conditional given P(total in bounds | common) via a weighted/rejection step on that acceptance probability), and make the error message distinguish 'common-mode window unreachable' from genuinely empty bounds."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/montecarlo.py",
+          "line": 113,
+          "claim": "The docstring claims hierarchical truncation is done 'to preserve the shared common mode' and that the marginal is 'close to' the truncated total normal, but when bounds cut within ~1 sigma of the distribution the scheme materially distorts both: it over-truncates the common part, biases the marginal, and collapses the within-module correlation the class exists to model.",
+          "evidence": "Numeric repro (/tmp/mc_check3.py, /tmp/mc_check4.py) for mean=0, sigma_common=1, sigma_diff=2, low=1.0: implementation gives marginal mean 2.817 / std 1.323 and within-module corr 0.024; the exact joint per-lane-truncated model (rejection sampling, 8M modules) gives mean 2.587 / std 1.240 and corr 0.067; the truncated N(0, sqrt(5)) marginal gives mean 2.466. The implementation's common draw has mean 1.53 vs 0.86 under exact conditioning, so the 'shared common mode' correlation is understated ~3x (0.024 vs 0.067; 0.20 unconditioned). Harmless for far-away guard bounds (e.g. low=0 at 7 sigma on a loss parameter) but the doc's 'close to' materially understates the error when bounds bite.",
+          "suggested_fix": "Document the regime of validity quantitatively (bias negligible only when bounds are several total-sigma from the mean), or implement exact conditioning of the common draw (importance-weight common by P(total in bounds | common) before the per-lane resample)."
+        },
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/montecarlo.py",
+          "line": 408,
+          "claim": "run_module offers no way to declare a module-common (per-die shared) Uniform or non-split Normal: plain Normal/Uniform are always drawn i.i.d. per lane, so a physically shared quantity (e.g. one external laser's power feeding all N lanes of a CPO module, or die temperature) modeled as Uniform silently gets independent per-lane draws, changing module yield.",
+          "evidence": "Line 408: `p.sample(n_modules * n_lanes, rng).reshape(n_modules, n_lanes)` for every non-CommonDifferential param; CommonDifferential is Gaussian-only, so a shared Uniform is inexpressible. The module docstring's own canonical example uses Uniform('laser_power_dbm', ...) which in a CPO module is a per-module quantity; drawing it per-lane makes lane failures independent and pushes module yield toward lane_yield**N instead of lane_yield, understating yield. Behavior is documented in the run_module docstring, so this is an API gap/trap rather than a wrong formula.",
+          "suggested_fix": "Add a sigma_diff=0-style common-mode wrapper for arbitrary Params (e.g. Common(param) that draws once per module and broadcasts), or at least warn in the docstring that shared physical quantities must be expressed as CommonDifferential(sigma_diff=0)."
+        }
+      ],
+      "checks_run": "Diffed src/siphon/montecarlo.py against git HEAD: purely additive (Normal/Uniform/run/MonteCarloResult byte-identical); ran existing tests/test_montecarlo.py + tests/test_module_yield.py (20 passed). Re-derived and numerically verified: lane Var = sigma_common^2 + sigma_diff^2 (0.6801 vs 0.68 at n=300k) and within-module cov = sigma_common^2 (0.6400 vs 0.64); module_yield == lane_yield^N under sigma_common=0 at n=200k for specs {-1, 0, 0.5} x seeds {11, 12} (all |z| <= 1.74 vs analytic Phi-based p^4); pure common mode gives exact lane==module yield equality; NaN (ValueError metric) counts as failed lane and scraps module in *_above and *_below (NaN comparisons False both directions); truncation resampling leaves no mass at bounds. Truncation bias hunted with exact-joint rejection-sampling references (8M modules) and scipy truncnorm — found spurious-raise and bias defects reported above."
+    },
+    "ring-assignment": {
+      "module": "ring-assignment",
+      "findings": [
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/wdm.py",
+          "line": 212,
+          "claim": "Docstring says the per-ring cost model 'match[es] :func:`tuning_power_mw`', but the two functions charge different powers for the same physical blue-shift situation: optimize_ring_assignment (correctly) charges the long way around, (FSR - |d|)/eff, while tuning_power_mw's existing contract charges |d|/eff for a blue-shift request (its own docstring claims the long way costs 'the same |detune|', which is physically wrong unless |d| = FSR/2). A user reproducing per-ring powers via tuning_power_mw(target - as_built) gets numbers that disagree with the optimizer by up to (FSR-|d|)/|d|.",
+          "evidence": "wdm.optimize_ring_assignment([1.0], fsr_nm=10.0, efficiency_nm_per_mw=1.0).per_ring_mw == (9.0,) (as-built +1 nm red of target, heater must go forward 9 nm to the next order — correct), but wdm.tuning_power_mw(-1.0, 1.0) == 1.0 mW for the identical physical blue-shift request: a 9x discrepancy. The new code itself is self-consistent and physically right; the misleading part is the 'matching tuning_power_mw' cross-reference plus the pre-existing (unchanged) tuning_power_mw docstring claim that the long way costs the same |detune|.",
+          "suggested_fix": "Scope the cross-reference to the linear P = shift/efficiency model only, e.g. 'linear heater model P = shift/efficiency as in tuning_power_mw, but blue-shift requests are charged the full wrap cost (FSR - |d|), unlike tuning_power_mw which uses |d|'; optionally fix tuning_power_mw's docstring in a separate change."
+        }
+      ],
+      "checks_run": "Re-derived h_i(r) = (r*delta - offset_i) mod fsr from explicit channel wavelengths (target = ((i+r) mod N)*delta, as-built = i*delta + offset_i, red-only shift = min nonneg over resonance orders m): matches code sign convention (positive offset = as-built red of nominal, confirmed +1 nm offset -> 9 nm forward heat at FSR=10, -1 nm -> 1 nm). Independent physics brute force in /tmp (explicit resonance-order enumeration, not the code's formula): 300 random trials, N=1..8, offsets in [-2FSR, 2FSR], random eff, both bidirectional modes — 0 mismatches on rotation optimality, total_mw, per_ring_mw, naive_total_mw. Verified bidirectional = min(x, fsr-x) equals nearest-order distance. Verified FSR-integer-multiple tie-structure claim numerically on all trials (Total(r) = r*fsr + M(r)*fsr - sum(offsets), derived analytically too). Verified argmin tie-break returns lowest rotation on an exact-tie construction ([1,5], fsr=8, N=2). FP edge cases (offset = r*delta exactly, offset = FSR, 0.1+0.2) behave correctly. Monte-Carlo check: mean naive_total over uniform offsets -> FSR/2/eff (red) and FSR/4/eff (bidir), matching expected_tuning_power_mw (24.13 vs 24.0, 11.78 vs 12.0, N=4000). Hand-verified all analytic test anchors (N=2 red/bidir, common-mode N=8) and proved uniqueness of the r=k optimum in test_adding_delta_shifts_rotation_by_one_red_only (other rotations differ by >= (N-1)*FSR or (r-k)*FSR). Confirmed git diff is purely additive — existing functions unchanged. Ran tests/test_ring_assignment.py: 13 passed."
+    },
+    "reliability": {
+      "module": "reliability",
+      "findings": [
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/reliability.py",
+          "line": 70,
+          "claim": "Docstring calls the Arrhenius AF formula 'symmetric', but swapping use and stress temperatures gives the reciprocal (1/AF), not the same value — the exponent is antisymmetric, not symmetric.",
+          "evidence": "arrhenius_acceleration(25, 85, 0.7) * arrhenius_acceleration(85, 25, 0.7) == 1.0 exactly (numerically verified); AF(a,b) = exp(Ea/k(1/Ta - 1/Tb)) = 1/AF(b,a). A reader taking 'symmetric' literally (AF(a,b) == AF(b,a)) would invert an acceleration factor. The formula itself and all computed values are correct.",
+          "suggested_fix": "Reword to 'swapping the two temperatures gives the reciprocal factor (AF -> 1/AF)' or 'the formula is antisymmetric in 1/T'."
+        }
+      ],
+      "checks_run": "Re-derived and numerically reproduced every formula: (1) Arrhenius 52.8 anchor — exponent (0.97/8.617333262e-5)*(1/298.15 - 1/333.15) = 3.96636, AF = 52.792, matches doc and test within stated 1% tolerance; direction verified (AF>1 for stress>use, life_use = AF*life_stress, matching JESD91 semantics); Boltzmann eV/K constant matches CODATA via scipy.constants to 1.5e-15. (2) FIT = 1e9/MTTF and series-sum n*FIT — correct exponential-regime algebra; module MTTF = device MTTF/n verified. (3) survival_probability exp(-FIT*t*1e-9) — 1000 FIT for 1e6 h gives exp(-1), verified. (4) wearout_fraction lognormal CDF Phi(ln(t/t50)/sigma) via erf — cross-checked against scipy.stats.lognorm.cdf at 5 points spanning z from -15 to +10, agreement to <=3e-17; exact 0.5 at t50; tails clamp cleanly to 0.0/1.0 at t=1e-300 and 1e300; log-time symmetry F(t50/r)+F(t50*r)=1 holds. (5) Competing risks and module_survival — independently recomputed S = [exp(-fit*t*1e-9)*lognorm.sf(t)]^n with scipy for n=64: 0.27357935165362707, module returns identical value; XOR guard on (t50, sigma) verified. (6) wpe_derated — analytic values (0.20*(1-0.01*20)=0.16, 0.24 below ref), cap at 1.0, raise at <=0 verified; edge float case 0.01*(145-45) rounds to exactly 1.0 so the zero-derating test is deterministic under IEEE754. (7) Celsius->kelvin uses 273.15 with absolute-zero guard on all temperature inputs including wpe_derated's. (8) Convention check vs package: montecarlo.py converts metric ValueError to NaN corners, so ValueError-on-invalid here is the package-consistent choice; Laser(wpe in (0,1]) handoff verified against link.py:102. Ran full test suite: 33/33 pass. No wrong numbers found in any plausible use."
+    },
+    "eim-diagnostic": {
+      "module": "eim-diagnostic",
+      "findings": [
+        {
+          "severity": "low",
+          "file": "/Users/tr/prog/silicon-photonics/src/siphon/waveguide.py",
+          "line": 202,
+          "claim": "stacklevel=3 is hardcoded for the direct neff() call path, so when the warning is reached via group_index() or dispersion_ps_nm_km() it is attributed to waveguide.py internals (lines 214-216) instead of the user's call site.",
+          "evidence": "Numerically reproduced: Waveguide(width_um=0.033, height_um=0.22).group_index(1.55, 'TE') from a /tmp script emits three EimAccuracyWarning records attributed to src/siphon/waveguide.py lines 214/215/216 (the internal self.neff calls), not the caller's file, whereas a direct wg.neff() call is correctly attributed to the caller. Warning still fires and displays; only the reported location (and any location-based warning filters) is affected.",
+          "suggested_fix": "Not required for correctness. If desired, thread a stacklevel offset through neff/_neff_cached or bump stacklevel by 1 in group_index/dispersion callers; alternatively document that dispersion helpers attribute the warning to library code."
+        }
+      ],
+      "checks_run": "(1) Zero-numerical-change: git diff HEAD -- src/siphon/waveguide.py shows only docstrings, EimAccuracyWarning class, NEAR_CUTOFF_NEFF_MARGIN=5e-3, and a post-solve warn block; horiz[0] returned unchanged. Built HEAD snapshot package in /tmp (git show HEAD:...; materials.py unchanged vs HEAD) and compared neff over 7 geometries (strip/rib/SiN) x 3 wavelengths (1.31/1.55/1.6) x TE/TM: max |diff| = 0.0 (bit-identical), ValueError cases identical. Pinned test value 2.491857436485278 exactly equals HEAD output. (2) n_side correctness: margin uses the same n_side variable as the horizontal solve (side-slab EIM index for ribs, cladding index for strips); independently recomputed rib margin 2.184e-3 (test claims ~2.2e-3) and 30nm-strip margin 3.106e-3 (test claims ~3.1e-3). (3) TE and TM share one code path; TM warning numerically confirmed to fire (w<=26nm at 1.55um; 30nm at wl>=1.6um) with a monotone threshold at margin=5e-3. (4) lru_cache: warning fires once per (geometry, wavelength, mode) cache entry; verified equal frozen instances share entries; stacklevel=3 correctly attributes direct neff() calls to user code (no lru_cache Python frame in CPython) but misattributes via group_index (reported). (5) Doc claim 'TE1 first guided at ~316nm under EIM' reproduced: bisection gives 315.7nm. (6) Vertical near-cutoff implicitly covered since horiz[0] < n_center bounds the margin. (7) No other module calls Waveguide.neff; no pytest filterwarnings=error config; full suite 282 passed. Repo untouched (all scratch under /tmp)."
+    },
+    "fdmode": {
+      "module": "fdmode",
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/siphon/fdmode.py",
+          "line": 312,
+          "claim": "For rib waveguides (slab_um > 0) the guided-mode filter lower bound max(n_clad, n_box) admits laterally-unbound slab-continuum modes, so solve_modes returns pad-dependent Dirichlet-box artifacts labeled as guided modes — including with the DEFAULT n_modes=2.",
+          "evidence": "Numerically reproduced: solve_modes(0.5, 0.22, 1.55, slab_um=0.09, dx_um=0.03, n_modes=5) returns neffs [2.57892, 2.09494, 2.04755, 1.98225, 1.87528] at pad_um=1.5 but [2.57892, 2.10177, 2.08264, 2.05925, 2.01816] at pad_um=2.5: only the fundamental is pad-invariant. All spurious values lie below the 90 nm slab's TE effective index 2.10355 (slab_neffs) — i.e. they are lateral radiation modes of the residual slab, discretized by the Dirichlet wall; mode #3 carries 94% of its |E|^2 at |x| > 0.5 um. Same for TM: second 'mode' is 1.44566 at pad 1.5 vs 1.46941 at pad 2.5, below the slab TM index 1.48586. A default-parameter rib call (n_modes defaults to 2) returns one real mode plus one artifact. The physically correct lateral-guidance bound for a rib is the slab region's fundamental effective index — exactly the n_side convention waveguide.py's EIM already uses (side_slab[0]) — not max(n_clad, n_box). Strips are unaffected (verified: strip w=0.5 neffs pad-invariant to <1e-5 for the fundamental).",
+          "suggested_fix": "When slab_um > 0, set the filter lower bound to the residual slab's fundamental effective index for the solve polarization: n_min = max(n_clad, n_box, slab_neffs(n_core, n_clad, n_box, slab_um, wl_um, pol)[0]) (guard the empty-list case). Alternatively/additionally reject modes whose field fraction outside the core region exceeds a threshold, and add a rib multimode test pinning pad-invariance."
+        },
+        {
+          "severity": "medium",
+          "file": "src/siphon/fdmode.py",
+          "line": 43,
+          "claim": "The 'Expect roughly 1e-3 absolute n_eff accuracy for well-guided modes' claim is discretization error only; the semi-vectorial model itself is off by ~4e-2 absolute for the flagship geometry, and the test suite's framing that FD-minus-EIM measures 'the EIM bias' (tests/test_fdmode.py lines 13-15 and 109-124) understates the true EIM bias by ~16x because FD shares EIM's neglect of polarization coupling.",
+          "evidence": "Numerically reproduced with an independent full-vectorial solver (EMpy VFDModeSolver, interface-aligned grids: 10 nm -> 2.44936, 5 nm -> 2.44805, extrapolated ~2.4476) for the 500x220 nm SOI strip TE0 at 1.55 um with matched indices (n_si=3.47641, n_ox=1.44402). SiPhon FD converges to 2.48812 (dx sweep 0.04/0.02/0.01/0.005 -> 2.491818/2.489180/2.488411/2.488197, observed order p~1.9), i.e. absolute n_eff error ~4.1e-2 = 40x the claimed 1e-3, for a well-guided mode at the default grid. EIM gives 2.49186, so the true EIM bias is ~+4.4e-2 while fd-eim = -2.7e-3 captures only ~6% of it; test_fd_vs_eim_close_but_not_identical's docstring ('asserts the sign and the order of magnitude of the EIM bias') is wrong on magnitude by more than an order. The sign assertion (fd < eim) holds but reflects a small residual, not the bias.",
+          "suggested_fix": "Reword the Honesty limits paragraph: '~1e-3 discretization accuracy relative to the exact semi-vectorial solution; the semi-vectorial approximation itself can deviate from full-vectorial n_eff by a few 1e-2 for high-contrast strips (e.g. ~4e-2 for 500x220 TE0).' Correct the test module and test_fd_vs_eim docstrings to say the comparison checks method consistency at semi-vectorial fidelity, not a bound on the EIM's vectorial bias."
+        }
+      ],
+      "checks_run": "Re-derived Stern flux-form coefficients (u=eps*E, p=1/eps harmonic mean -> coupling 2*eps_p/(eps_0+eps_p)/h^2 with matching diagonal): matches code for both TE (x-averaging) and TM (y-averaging), including Dirichlet edge handling via edge-padded eps (diagonal keeps -2/h^2, off-diagonal omitted = ghost zero). Eigenvalue->neff = sqrt(beta^2)/k0 correct. Numeric cross-checks (uv run, scratch in /tmp only): (1) wide-strip 6x0.22 vs analytic slab_neffs — TE diff -6.8e-4, TM diff +3.7e-4; (2) tall-core 0.3x6.0 vs vertical slab with swapped polarization — quasi-TE matches slab TM (2.61703 vs 2.61658) and quasi-TM matches slab TE (3.04906 vs 3.04958), confirming the Stern axis assignment; (3) square 300 nm core TE/TM degeneracy: split 2.0e-3 at dx=0.02 shrinking to 6.2e-4 at dx=0.01 (grid-anisotropy artifact, converging); (4) convergence dx 0.04->0.005: monotone from above, observed order ~1.9-2.5, extrapolated TE0=2.48812 (default-grid discretization error ~1.0e-3, backing that part of the claim); (5) dense full-spectrum eigendecomposition of the assembled operator: no eigenvalues above sigma=(k0*n_core)^2(1-1e-6) and guided-band eigenvalues purely real, so shift-invert LM mode selection is sound; (6) field[j,i]/(x_i,y_j) orientation and y=0-at-core-bottom verified via _epsilon_map probes and asymmetric SiN-box mode tail (|E| 4.9e-2 below vs 2.2e-2 above at equal offsets); (7) mesh-snapping arithmetic (core outline on cell boundaries, mirror-symmetric x grid) verified; (8) rib filter probed with pad sweeps for TE and TM; (9) independent full-vectorial cross-check via EMpy with interface-aligned grids; (10) full test suite passes (27 passed). Repo untouched."
+    }
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Refute"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "refute:shot-noise",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "af1502d472d2abe72",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917665957,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "shot-noise",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784917965924,
+      "tokens": 54546,
+      "toolCalls": 12,
+      "durationMs": 299967,
+      "resultPreview": "{\"module\":\"shot-noise\",\"findings\":[{\"severity\":\"medium\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/link.py\",\"line\":315,\"claim\":\"The docstrings (module header line 20-21, shot_penalty_db line 315-318, LinkBudget line 380-381, sensitivity_oma_dbm line 467-468) claim composing RIN and shot as independent dB add-ons is 'standard, mildly pessimistic'; within the module's own noise model the co…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "refute:extract",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "a0b80940fefcb02dc",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917666050,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "extract",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784918078526,
+      "tokens": 65830,
+      "toolCalls": 17,
+      "durationMs": 412476,
+      "resultPreview": "{\"module\":\"extract\",\"findings\":[{\"severity\":\"medium\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/extract.py\",\"line\":317,\"claim\":\"With default (unbounded) parameters, least_squares can step a parameter outside the model's validity domain and the fit dies mid-optimization with the model's constructor ValueError instead of a fit-level error or a converged result; any measured trace whose best…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "refute:correlated-mc",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "a22e9dafd7697bd76",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917666389,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "correlated-mc",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784917919225,
+      "tokens": 39619,
+      "toolCalls": 13,
+      "durationMs": 252836,
+      "resultPreview": "{\"module\":\"correlated-mc\",\"findings\":[{\"severity\":\"medium\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/montecarlo.py\",\"line\":148,\"claim\":\"CommonDifferential.sample spuriously raises 'truncation bounds reject nearly all samples' whenever [low, high] lies more than a few sigma_common from mean, even when the TOTAL distribution has large probability mass inside the bounds; in the sigma_common…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "refute:ring-assignment",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "ad5be3242158b58bb",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917665820,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "ring-assignment",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784917906199,
+      "tokens": 38869,
+      "toolCalls": 12,
+      "durationMs": 240379,
+      "resultPreview": "{\"module\":\"ring-assignment\",\"findings\":[{\"severity\":\"low\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/wdm.py\",\"line\":212,\"claim\":\"Docstring says the per-ring cost model 'match[es] :func:`tuning_power_mw`', but the two functions charge different powers for the same physical blue-shift situation: optimize_ring_assignment (correctly) charges the long way around, (FSR - |d|)/eff, while tuning_…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "refute:reliability",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "a2864d1547cdd91d6",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917666085,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "reliability",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784917808484,
+      "tokens": 29697,
+      "toolCalls": 12,
+      "durationMs": 142399,
+      "resultPreview": "{\"module\":\"reliability\",\"findings\":[{\"severity\":\"low\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/reliability.py\",\"line\":70,\"claim\":\"Docstring calls the Arrhenius AF formula 'symmetric', but swapping use and stress temperatures gives the reciprocal (1/AF), not the same value — the exponent is antisymmetric, not symmetric.\",\"evidence\":\"arrhenius_acceleration(25, 85, 0.7) * arrhenius_acceler…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "refute:eim-diagnostic",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "a736681ffe38d4f15",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917665951,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "eim-diagnostic",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784917899085,
+      "tokens": 35552,
+      "toolCalls": 15,
+      "durationMs": 233134,
+      "resultPreview": "{\"module\":\"eim-diagnostic\",\"findings\":[{\"severity\":\"low\",\"file\":\"/Users/tr/prog/silicon-photonics/src/siphon/waveguide.py\",\"line\":202,\"claim\":\"stacklevel=3 is hardcoded for the direct neff() call path, so when the warning is reached via group_index() or dispersion_ps_nm_km() it is attributed to waveguide.py internals (lines 214-216) instead of the user's call site.\",\"evidence\":\"Numerically reprodu…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "refute:fdmode",
+      "phaseIndex": 1,
+      "phaseTitle": "Refute",
+      "agentId": "a2c0231eadfb1a9c7",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784917666952,
+      "queuedAt": 1784917662706,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "fdmode",
+      "promptPreview": "You are an adversarial reviewer of newly added code in SiPhon, a silicon photonics toolkit at /Users/tr/prog/silicon-photonics. Your job is to REFUTE: find real physics errors, wrong formulas, broken conventions, API traps, or tests that pin wrong behavior. Assume the author was competent but rushed; hunt for the subtle failure, not style nits.\n\nMETHOD:\n- Read the target code AND its tests fully. …",
+      "lastProgressAt": 1784918969354,
+      "tokens": 60831,
+      "toolCalls": 18,
+      "durationMs": 1302402,
+      "resultPreview": "{\"module\":\"fdmode\",\"findings\":[{\"severity\":\"high\",\"file\":\"src/siphon/fdmode.py\",\"line\":312,\"claim\":\"For rib waveguides (slab_um > 0) the guided-mode filter lower bound max(n_clad, n_box) admits laterally-unbound slab-continuum modes, so solve_modes returns pad-dependent Dirichlet-box artifacts labeled as guided modes — including with the DEFAULT n_modes=2.\",\"evidence\":\"Numerically reproduced: solv…"
+    }
+  ],
+  "totalTokens": 324944,
+  "totalToolCalls": 99
+}

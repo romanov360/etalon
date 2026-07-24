@@ -116,3 +116,42 @@ deliberately deferred: highest risk of pseudo-accurate output for the effort.
 Plus gap-fills: shot-noise term in receiver sensitivity (dark current is
 carried but unused), near-cutoff EIM diagnostic warning, and a
 margin-vs-pJ/bit Pareto sweep harness stitching E2/E5 together.
+
+## Adversarial review of the extensions (later 2026-07-24)
+
+Seven read-only reviewers (one per new module, numeric reproduction
+required for every finding; transcripts in
+docs/research/raw/workflow-validation-review/) returned 14 findings, all
+resolved; a pre/post file-hash audit confirmed no reviewer touched the
+repo. The substantive ones:
+
+- **HIGH, fdmode**: for ribs (slab_um > 0) the guided-mode filter admitted
+  laterally-unbound slab-continuum modes — pad-dependent Dirichlet-box
+  artifacts labeled as guided. Fixed: the filter floor now includes the
+  residual slab's fundamental effective index. Pinned by a pad-invariance
+  test.
+- **MED, link**: composing RIN and shot as independent dB penalties is
+  OPTIMISTIC (both are signal-dependent), up to ~1 dB at high baud / low
+  ER; the docstrings claimed the opposite. Fixed: LinkBudget now solves
+  the joint thermal+RIN+shot quadratic exactly and books the difference
+  as a `noise_interaction_db` waterfall row (DR4 +0.06 dB -> margin
+  +8.94 dB; CPO unchanged at +14.95 dB). Pinned against an independent
+  bisection of the joint implicit equation.
+- **MED, extract**: unbounded fits could die mid-optimization with the
+  component's raw constructor ValueError. Fixed: informative re-raise
+  naming the trial values and advising bounds; also added a `fixed=`
+  passthrough to fit_ring_add_drop (pin a known loss — the standard
+  remedy for the kappa/loss degeneracy).
+- **MED, montecarlo**: CommonDifferential's hierarchical truncation
+  spuriously raised whenever bounds excluded the common mean (even with
+  ample probability mass in-bounds) and distorted the correlation it
+  exists to model. Fixed: the common draw stays exactly Gaussian and each
+  lane's differential is drawn from the conditionally truncated normal by
+  inverse CDF — no rejection loop, correlation preserved by construction,
+  semantics documented precisely.
+- Lows (all fixed): misleading tuning_power_mw blue-shift docstring and
+  the optimizer cross-reference scoped; Arrhenius "symmetric" ->
+  reciprocal; Tia.bandwidth_ghz documented as descriptive-only (noise
+  bandwidth is always 0.75 x baud); Pareto example lane-count duplicates
+  collapsed; extract test comment/perturbation corrected (3e-3, genuinely
+  ~40% of a resonance order); EIM warning stacklevel note (accepted as-is).

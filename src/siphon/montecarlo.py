@@ -41,6 +41,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import numpy as np
+from scipy import stats
 
 
 @dataclass(frozen=True)
@@ -110,14 +111,22 @@ class CommonDifferential:
     is sigma_common^2 / (sigma_common^2 + sigma_diff^2). Units are whatever
     the named parameter uses (dB, um, nm, ...).
 
-    Optional ``low``/``high`` truncate the TOTAL value by resampling (like
-    :class:`Normal`, no clipping mass at the bounds). Truncation is
-    hierarchical to preserve the shared common mode: the common draw is
-    first resampled until ``mean + common`` lies in [low, high], then each
-    offending lane's differential draw is resampled until its total does.
-    In the ``sigma_diff = 0`` limit this is the exact truncated normal; with
-    ``sigma_diff > 0`` the total's marginal is close to, but not exactly,
-    the truncated N(mean, sqrt(sigma_common^2 + sigma_diff^2)).
+    Optional ``low``/``high`` truncate the TOTAL value (no clipping mass at
+    the bounds). Semantics: the common draw is NEVER truncated — it is the
+    die-level shift and stays exactly Gaussian, so the shared common mode
+    and within-module correlation are preserved by construction — and each
+    lane's differential is then drawn from the normal conditionally
+    truncated to ``[low - mean - common, high - mean - common]`` via
+    inverse-CDF sampling, which is valid however far in the tail the
+    window sits (no rejection loop, no spurious sampling failure). Every
+    total lies in [low, high]. In the ``sigma_diff = 0`` limit the common
+    draw itself is the exact truncated normal, matching :class:`Normal`;
+    with ``sigma_diff > 0`` a lane's marginal is a Gaussian mixture of
+    conditionally truncated normals — close to, but not exactly, the
+    truncated N(mean, sqrt(sigma_common^2 + sigma_diff^2)), and biased
+    toward the bounds when they cut within ~1 total sigma of the mean
+    (declare wider bounds or fold hard limits into the metric if that
+    regime matters).
     """
 
     mean: float
@@ -136,27 +145,33 @@ class CommonDifferential:
 
     def sample(self, n_modules: int, n_lanes: int, rng: np.random.Generator) -> np.ndarray:
         """Draw a (n_modules, n_lanes) array with one common draw per module."""
+        shape = (n_modules, n_lanes)
+        if self.low is None and self.high is None:
+            common = rng.normal(0.0, self.sigma_common, n_modules)
+            return self.mean + common[:, None] + rng.normal(0.0, self.sigma_diff, shape)
         lo = -np.inf if self.low is None else self.low
         hi = np.inf if self.high is None else self.high
+        if self.sigma_diff == 0.0:
+            if self.sigma_common == 0.0:
+                if not lo <= self.mean <= hi:
+                    raise ValueError(
+                        "CommonDifferential: constant value lies outside [low, high]"
+                    )
+                return np.full(shape, self.mean)
+            a = (lo - self.mean) / self.sigma_common
+            b = (hi - self.mean) / self.sigma_common
+            common = stats.truncnorm.rvs(
+                a, b, loc=self.mean, scale=self.sigma_common,
+                size=n_modules, random_state=rng,
+            )
+            return np.broadcast_to(common[:, None], shape).copy()
         common = rng.normal(0.0, self.sigma_common, n_modules)
-        if self.low is not None or self.high is not None:
-            for _ in range(1000):
-                bad = (self.mean + common < lo) | (self.mean + common > hi)
-                if not bad.any():
-                    break
-                common[bad] = rng.normal(0.0, self.sigma_common, int(bad.sum()))
-            else:
-                raise ValueError(
-                    "CommonDifferential: truncation bounds reject nearly all samples"
-                )
-        x = self.mean + common[:, None] + rng.normal(0.0, self.sigma_diff, (n_modules, n_lanes))
-        for _ in range(1000):
-            bad = (x < lo) | (x > hi)
-            if not bad.any():
-                return x
-            center = np.broadcast_to(self.mean + common[:, None], x.shape)[bad]
-            x[bad] = center + rng.normal(0.0, self.sigma_diff, int(bad.sum()))
-        raise ValueError("CommonDifferential: truncation bounds reject nearly all samples")
+        center = np.broadcast_to(self.mean + common[:, None], shape)
+        a = (lo - center) / self.sigma_diff
+        b = (hi - center) / self.sigma_diff
+        return stats.truncnorm.rvs(
+            a, b, loc=center, scale=self.sigma_diff, size=shape, random_state=rng
+        )
 
 
 ModuleParam = CommonDifferential | Normal | Uniform
@@ -383,6 +398,14 @@ def run_module(
     :class:`Normal` / :class:`Uniform` parameters are drawn fully
     independently per lane (the sigma_common = 0 equivalent), and their
     ``name`` must match the dict key.
+
+    CAUTION: a physically module-shared quantity (one laser feeding all
+    lanes, die temperature) must be expressed as
+    ``CommonDifferential(mean, sigma_common=s, sigma_diff=0)`` — modeling
+    it as a plain Normal/Uniform silently draws it independently per lane,
+    decorrelating lane failures and understating module yield. There is
+    currently no shared-Uniform equivalent; approximate one with a
+    Gaussian of matched spread or fold it into the metric.
 
     ``metric`` is called per lane with keyword arguments, one scalar per
     parameter: ``metric(**{name: value})`` (note: :func:`run` passes a single

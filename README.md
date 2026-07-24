@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 282 tests
+uv run pytest          # 289 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -97,7 +97,7 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               282 tests, physics anchored to analytic/known values
+tests/               289 tests, physics anchored to analytic/known values
 examples/            six runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
@@ -114,7 +114,12 @@ validation pass (2026-07-24) confirmed the core algebra and surfaced four more
 findings — notably RIN noise evaluated at OMA instead of the true top level
 (~0.56 dB hidden optimism at low ER) and a batched rewrite of the circuit
 solve — all rolled in and pinned (`tests/test_validation_regressions.py`,
-notes in `docs/research/validation-notes-2026-07-24.md`).
+notes in `docs/research/validation-notes-2026-07-24.md`). The roadmap
+extensions that followed (extraction, module yield, ring assignment,
+reliability, FD solver, shot noise) went through their own 7-reviewer
+adversarial pass: 14 findings, all resolved — including an exact joint
+RIN+shot noise solve replacing the optimistic independent-dB composition
+(`tests/test_extension_review_regressions.py`).
 
 ## License & citation
 

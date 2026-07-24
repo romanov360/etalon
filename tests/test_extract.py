@@ -54,7 +54,7 @@ def ring_fit():
         "kappa1_power": 0.12,
         "kappa2_power": 0.04,
         "loss_db_per_cm": 5.0,
-        "neff0": TRUE["neff0"] + 3e-4,  # ~40% of a resonance-order spacing
+        "neff0": TRUE["neff0"] + 3e-3,  # ~40% of a resonance-order spacing (wl0/L = 7.75e-3)
         "ng": TRUE["ng"] * 1.03,
     }
     return fit_ring_add_drop(

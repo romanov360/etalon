@@ -260,7 +260,10 @@ def fit_transmission(
         exposed external port names.
     bounds : optional ``{name: (lo, hi)}``; keys must be a subset of
         ``params0``; missing names are unbounded. ``params0`` must lie
-        within its bounds.
+        within its bounds. Domain-constrained parameters (couplings,
+        power fractions, losses) SHOULD always be bounded: unbounded, the
+        optimizer may step outside the model's validity domain, and the
+        fit stops with a ValueError naming the offending trial values.
     domain : ``"power_db"`` (default) or ``"field_mag"``.
     **fixed : extra keyword arguments passed to ``build`` unchanged (fixed,
         not fitted). Keys must not collide with ``params0``.
@@ -305,7 +308,16 @@ def fit_transmission(
 
     def residual(x: np.ndarray) -> np.ndarray:
         params = dict(zip(names, x))
-        model = build(**{**fixed, **params})
+        try:
+            model = build(**{**fixed, **params})
+        except ValueError as exc:
+            raise ValueError(
+                f"build() rejected trial parameters {params} during the "
+                f"optimization ({exc}). Domain-constrained parameters "
+                f"(couplings, power fractions, losses) need explicit "
+                f"bounds= so the optimizer cannot step outside the model's "
+                f"validity domain."
+            ) from exc
         parts = [
             _to_domain(_model_transmission(model, wl, pin, pout), domain) - data
             for pin, pout, data in paths
@@ -357,6 +369,7 @@ def fit_ring_add_drop(
     circumference_um: float,
     wl0_um: float = 1.55,
     bounds: dict[str, tuple[float, float]] | None = None,
+    fixed: dict[str, float] | None = None,
 ) -> FitResult:
     """Fit a :class:`siphon.components.RingAddDrop` to through+drop spectra.
 
@@ -389,6 +402,11 @@ def fit_ring_add_drop(
     bounds : optional per-parameter overrides of the defaults
         (kappas in (1e-4, 0.9), loss in (0, 1000) dB/cm, neff0 in
         (1.0, 4.5), ng in (1.0, 8.0)).
+    fixed : optional ``{name: value}`` holding any of the five parameters
+        at a known value instead of fitting it — the standard remedy for
+        the (kappa1, kappa2, loss) degeneracy when loss is known from a
+        de-embedding structure. Fixed names must not also appear in ``x0``
+        or ``bounds``.
 
     Returns
     -------
@@ -411,7 +429,9 @@ def fit_ring_add_drop(
       data equally well. The optimizer returns the valley point nearest
       ``x0``: start from the intended DESIGN asymmetry (kappa1 vs kappa2)
       and treat the split with ~10% uncertainty unless the noise floor is
-      well below 0.05 dB or phase/group-delay data is added.
+      well below 0.05 dB or phase/group-delay data is added. Pinning a
+      known loss via ``fixed={"loss_db_per_cm": ...}`` (e.g. from a
+      de-embedding structure) collapses the valley.
     * Coupler excess loss is not modeled; it is absorbed into
       loss_db_per_cm.
     """
@@ -419,21 +439,39 @@ def fit_ring_add_drop(
     if circumference_um <= 0:
         raise ValueError("circumference_um must be positive")
 
-    params0 = dict(_RING_X0)
+    held = {k: float(v) for k, v in (fixed or {}).items()}
+    unknown = set(held) - set(_RING_FREE)
+    if unknown:
+        raise ValueError(
+            f"fixed keys must be among {_RING_FREE}; unknown: {sorted(unknown)}"
+        )
+    free = tuple(k for k in _RING_FREE if k not in held)
+    if not free:
+        raise ValueError("at least one of the five ring parameters must stay free")
+
+    params0 = {k: _RING_X0[k] for k in free}
     if x0:
         unknown = set(x0) - set(_RING_FREE)
         if unknown:
             raise ValueError(
                 f"x0 keys must be among {_RING_FREE}; unknown: {sorted(unknown)}"
             )
+        overlap = set(x0) & set(held)
+        if overlap:
+            raise ValueError(f"parameters appear in both x0 and fixed: {sorted(overlap)}")
         params0.update({k: float(v) for k, v in x0.items()})
 
-    eff_bounds = dict(_RING_BOUNDS)
+    eff_bounds = {k: _RING_BOUNDS[k] for k in free}
     if bounds:
         unknown = set(bounds) - set(_RING_FREE)
         if unknown:
             raise ValueError(
                 f"bounds keys must be among {_RING_FREE}; unknown: {sorted(unknown)}"
+            )
+        overlap = set(bounds) & set(held)
+        if overlap:
+            raise ValueError(
+                f"parameters appear in both bounds and fixed: {sorted(overlap)}"
             )
         eff_bounds.update(bounds)
 
@@ -445,25 +483,27 @@ def fit_ring_add_drop(
     def build(**p) -> RingAddDrop:
         return RingAddDrop(**p)
 
-    fixed = {"circumference_um": circumference_um, "wl0_um": wl0_um}
+    build_kwargs = {"circumference_um": circumference_um, "wl0_um": wl0_um, **held}
 
-    # Coarse neff0 scan over one resonance-order spacing to align the comb.
-    paths = _normalize_paths(measured, None, None, wl.size)
-    order_spacing = wl0_um / circumference_um
-    lo, hi = eff_bounds["neff0"]
-    best_neff0, best_sse = params0["neff0"], np.inf
-    for offset in np.linspace(-0.5, 0.5, 61) * order_spacing:
-        neff0 = params0["neff0"] + offset
-        if not lo <= neff0 <= hi:
-            continue
-        model = build(**{**fixed, **params0, "neff0": neff0})
-        sse = 0.0
-        for pin, pout, data in paths:
-            obs = _to_domain(_model_transmission(model, wl, pin, pout), "power_db")
-            sse += float(np.sum((obs - data) ** 2))
-        if sse < best_sse:
-            best_neff0, best_sse = neff0, sse
-    params0["neff0"] = best_neff0
+    # Coarse neff0 scan over one resonance-order spacing to align the comb
+    # (skipped when neff0 is held fixed).
+    if "neff0" in free:
+        paths = _normalize_paths(measured, None, None, wl.size)
+        order_spacing = wl0_um / circumference_um
+        lo, hi = eff_bounds["neff0"]
+        best_neff0, best_sse = params0["neff0"], np.inf
+        for offset in np.linspace(-0.5, 0.5, 61) * order_spacing:
+            neff0 = params0["neff0"] + offset
+            if not lo <= neff0 <= hi:
+                continue
+            model = build(**{**build_kwargs, **params0, "neff0": neff0})
+            sse = 0.0
+            for pin, pout, data in paths:
+                obs = _to_domain(_model_transmission(model, wl, pin, pout), "power_db")
+                sse += float(np.sum((obs - data) ** 2))
+            if sse < best_sse:
+                best_neff0, best_sse = neff0, sse
+        params0["neff0"] = best_neff0
 
     return fit_transmission(
         build,
@@ -472,5 +512,5 @@ def fit_ring_add_drop(
         measured,
         bounds=eff_bounds,
         domain="power_db",
-        **fixed,
+        **build_kwargs,
     )

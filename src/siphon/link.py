@@ -17,8 +17,12 @@ Conventions
   RIN, shot noise, finite extinction ratio, and crosstalk are layered on
   as separate dB penalties, following standard budgeting practice
   (Agrawal, *Fiber-Optic Communication Systems*, 4th ed., ch. 4; IEEE
-  802.3 link-budget spreadsheets). RIN and shot compose as independent
-  dB add-ons — standard, mildly pessimistic.
+  802.3 link-budget spreadsheets). Because RIN and shot noise are both
+  signal-dependent, their separate dB penalties sum OPTIMISTICALLY (the
+  classic "adding dB penalties is conservative" argument holds only for
+  signal-independent noises); ``LinkBudget`` solves the joint thermal +
+  RIN + shot requirement exactly and reports the correction as a separate
+  ``noise_interaction_db`` waterfall row.
 
 Validity: architecture-level numbers, not compliance signoff. There is no
 TDECQ machinery and no bandwidth/equalization modeling; equalization and
@@ -159,6 +163,12 @@ class Tia:
     ``input_noise_pa_per_sqrt_hz`` is the input-referred current noise
     density (flat approximation), ``bandwidth_ghz`` the 3-dB bandwidth,
     ``energy_fj_per_bit`` the RX analog front-end energy.
+
+    CAUTION: ``bandwidth_ghz`` is descriptive only — no sensitivity
+    formula consumes it. The noise bandwidth is always
+    0.75 * baud (NOISE_BANDWIDTH_FRACTION), so budgets computed at symbol
+    rates well beyond the TIA's stated bandwidth silently assume a
+    receiver rescaled to that baud (there is no bandwidth/ISI modeling).
     """
 
     input_noise_pa_per_sqrt_hz: float
@@ -313,12 +323,15 @@ def shot_penalty_db(
         c = i_n^2 + 2 q_e I_d f_n,
         u = (b + sqrt(b^2 + 4 a c)) / (2 a),
 
-    and the penalty is 10 log10(u / u0) >= 0 dB. Composed with the RIN
-    penalty as an independent dB add-on (standard, mildly pessimistic:
-    the two noise variances are not re-summed jointly). Raises ValueError
-    for extinction ratio <= 0 dB. Assumes a PIN photodiode (no avalanche
-    excess noise) and Gaussian statistics; architecture-level accuracy,
-    not signoff.
+    and the penalty is 10 log10(u / u0) >= 0 dB. This is the SINGLE-noise
+    penalty (thermal + shot only). Because shot and RIN are both
+    signal-dependent, adding their separate dB penalties UNDERSTATES the
+    joint requirement (each solve undercounts the variance at the larger
+    joint operating point); ``LinkBudget`` therefore re-sums the variances
+    jointly and books the positive difference as
+    ``noise_interaction_db``. Raises ValueError for extinction ratio
+    <= 0 dB. Assumes a PIN photodiode (no avalanche excess noise) and
+    Gaussian statistics; architecture-level accuracy, not signoff.
     """
     if extinction_ratio_db <= 0.0:
         raise ValueError("extinction ratio must be > 0 dB")
@@ -373,12 +386,16 @@ class LinkBudget:
         received OMA  = launched OMA - sum(path losses)
         required OMA  = thermal-limited sensitivity OMA
                         + RIN penalty + shot-noise penalty
-                        + explicit penalties
+                        + RIN x shot interaction + explicit penalties
         margin        = received OMA - required OMA
 
     Shot noise (with dark current) is modeled via :func:`shot_penalty_db`,
-    evaluated at the top eye level like the RIN penalty; RIN and shot
-    compose as independent dB add-ons (standard, mildly pessimistic).
+    evaluated at the top eye level like the RIN penalty. Both are
+    signal-dependent, so the joint thermal + RIN + shot requirement is
+    solved exactly (one quadratic, see ``noise_interaction_db``); the
+    interaction term is what the independent dB sum would have missed
+    (it is >= 0: independent summing is optimistic here, not
+    conservative).
 
     Finite extinction ratio is charged once, at the transmitter (the
     avg -> OMA conversion inside ``launched_oma_dbm``) — see
@@ -459,13 +476,66 @@ class LinkBudget:
         )
 
     @property
+    def _joint_noise_penalty_db(self) -> float:
+        """Exact joint thermal + RIN + shot required-OMA inflation, dB.
+
+        Solves the top-eye condition with ALL noise variances summed at
+        the joint operating point (k = ER/(ER-1), RIN linear per Hz):
+
+            u R / (2 (M-1)) = q sqrt( i_n^2 + 2 q_e (R k u + I_d) f_n
+                                      + (R k u)^2 RIN f_n )
+
+        which is still quadratic in the required OMA u:
+
+            (a - g) u^2 - b u - c = 0,   g = (R k)^2 RIN f_n,
+
+        with a, b, c as in :func:`shot_penalty_db`. g/a = x^2 with x the
+        RIN unreachability parameter of :func:`rin_penalty_db`, so a > g
+        exactly when the RIN-only target is reachable. Returns
+        10 log10(u / u0) against the thermal-only baseline u0.
+        """
+        sig = self.signaling
+        q = sig.q_factor
+        m = sig.levels
+        r = self.photodiode.responsivity_a_per_w
+        er = db_to_linear(self.modulator.extinction_ratio_db)
+        k = 1.0 if math.isinf(er) else er / (er - 1.0)
+        f_n_hz = NOISE_BANDWIDTH_FRACTION * sig.rate_gbd * 1e9
+        i_n_a = self.tia.input_noise_pa_per_sqrt_hz * 1e-12 * math.sqrt(f_n_hz)
+        q_e = ELEMENTARY_CHARGE_C
+        a = (r / (2.0 * q * (m - 1))) ** 2
+        b = 2.0 * q_e * r * k * f_n_hz
+        c = i_n_a**2 + 2.0 * q_e * self.photodiode.dark_current_na * 1e-9 * f_n_hz
+        g = (r * k) ** 2 * db_to_linear(self.laser.rin_db_hz) * f_n_hz
+        if g >= a:
+            raise ValueError(
+                f"RIN {self.laser.rin_db_hz} dB/Hz makes the target "
+                f"unreachable at {sig.rate_gbd} GBd PAM{m}"
+            )
+        u0_w = 2.0 * q * (m - 1) * i_n_a / r
+        u_w = (b + math.sqrt(b * b + 4.0 * (a - g) * c)) / (2.0 * (a - g))
+        return 10.0 * math.log10(u_w / u0_w)
+
+    @property
+    def noise_interaction_db(self) -> float:
+        """RIN x shot interaction: joint solve minus the two separate penalties.
+
+        Always >= 0 — both noises are signal-dependent, so each separate
+        penalty undercounts the variance at the larger joint operating
+        point. Small at the shipped presets (~0.06 dB DR4, ~0.0002 dB
+        CPO) but grows to ~1 dB at high baud / low ER / -140 dB/Hz RIN.
+        """
+        return self._joint_noise_penalty_db - self.rin_penalty_db - self.shot_penalty_db
+
+    @property
     def sensitivity_oma_dbm(self) -> float:
         """Required OMA at the receiver, dBm.
 
         Thermal-limited sensitivity (:func:`receiver_sensitivity_oma_dbm`)
-        plus the RIN penalty, the shot-noise (+ dark current) penalty, and
-        every entry of ``penalties_db``, as independent dB add-ons — the
-        standard (mildly pessimistic) budgeting composition.
+        plus the exact joint thermal + RIN + shot noise requirement
+        (attributed across the RIN row, the shot row, and the
+        ``noise_interaction_db`` row of the waterfall) plus every entry of
+        ``penalties_db``.
 
         The extinction-ratio effect is NOT added here: this budget is carried
         in the OMA domain, where finite ER is already charged once at the
@@ -476,8 +546,7 @@ class LinkBudget:
         ER (it is exactly the same factor as the launch-side conversion).
         """
         s = receiver_sensitivity_oma_dbm(self.photodiode, self.tia, self.signaling)
-        s += self.rin_penalty_db
-        s += self.shot_penalty_db
+        s += self._joint_noise_penalty_db
         s += sum(self._penalties.values())
         return s
 
@@ -530,6 +599,9 @@ class LinkBudget:
         d = self.shot_penalty_db
         s += d
         row("shot noise penalty (incl. dark)", +d, s)
+        d = self.noise_interaction_db
+        s += d
+        row("RIN x shot interaction", +d, s)
         for name, pen in self._penalties.items():
             s += pen
             row(f"penalty: {name}", +pen, s)

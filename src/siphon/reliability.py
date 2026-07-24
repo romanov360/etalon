@@ -67,7 +67,8 @@ def arrhenius_acceleration(
     stress temperature ages the device AF times faster than at the use
     temperature (equivalently, stress-test hours multiply by AF when
     extrapolated to use conditions). AF < 1 when the "stress" temperature
-    is below the use temperature; the formula is symmetric.
+    is below the use temperature; swapping the two temperatures gives the
+    reciprocal factor (AF -> 1/AF — the exponent is antisymmetric in 1/T).
 
     Example anchor: Ea = 0.97 eV (a common laser-diode value), 25 C -> 60 C
     gives AF ~ 52.8.

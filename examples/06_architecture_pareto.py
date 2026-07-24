@@ -112,8 +112,14 @@ def main() -> int:
     for p in sorted(points, key=lambda p: p[2]):
         mark = "  *" if id(p) in front else ""
         print(f"{p[0]:<36} {p[1]:>+12.2f} {p[2]:>8.2f}{mark}")
-    print("\nPareto-efficient subset (max margin, min pJ/bit):")
+    print("\nPareto-efficient subset (max margin, min pJ/bit; lane-count")
+    print("duplicates collapsed — lane count is exactly degenerate here):")
+    seen: set[tuple[float, float]] = set()
     for p in sorted(pareto(points), key=lambda p: p[2]):
+        key = (round(p[1], 6), round(p[2], 6))
+        if key in seen:
+            continue
+        seen.add(key)
         print(f"  {p[0]:<36} {p[1]:>+8.2f} dB  {p[2]:6.2f} pJ/bit")
     print("\nReading: sharing one laser across 4 lanes amortizes only the")
     print("per-device overhead; NRZ banks margin that PAM4 trades away for")

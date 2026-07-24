@@ -131,13 +131,16 @@ def test_presets_still_positive_margin_and_report_row(factory):
     lines = text.splitlines()
     i_rin = next(i for i, ln in enumerate(lines) if "RIN penalty" in ln)
     assert "shot noise penalty" in lines[i_rin + 1]  # row right after RIN
-    # composition: thermal + RIN + shot + explicit penalties, all in dB
+    # composition: thermal + RIN + shot + RINxshot interaction + explicit
+    # penalties, all in dB (the interaction row books the exact joint solve;
+    # see test_extension_review_regressions.py)
     from siphon.link import receiver_sensitivity_oma_dbm
 
     expected = (
         receiver_sensitivity_oma_dbm(link.photodiode, link.tia, link.signaling)
         + link.rin_penalty_db
         + link.shot_penalty_db
+        + link.noise_interaction_db
         + sum(link.penalties_db.values())
     )
     assert link.sensitivity_oma_dbm == pytest.approx(expected, abs=1e-12)

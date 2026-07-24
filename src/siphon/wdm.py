@@ -125,10 +125,12 @@ def tuning_power_mw(
 ) -> float:
     """Heater power (mW) to shift a ring resonance by ``detune_nm``.
 
-    Linear heater model P = |detune| / efficiency; heaters only red-shift
-    (heat) a silicon ring, so a blue-shift request is assumed to be realized
-    by tuning the long way to the next resonance order at the same |detune|
-    cost — i.e. this uses the magnitude of the detuning.
+    Linear heater model P = |detune| / efficiency, charging the MAGNITUDE
+    of the detuning. Heaters only red-shift (heat) a silicon ring, so a
+    physical blue-shift request actually costs the long way around to the
+    next resonance order, (FSR - |detune|) / efficiency — pass that shift
+    explicitly if you mean it (as :func:`optimize_ring_assignment` does);
+    this function does not know the FSR.
     """
     if efficiency_nm_per_mw <= 0:
         raise ValueError("efficiency_nm_per_mw must be positive")
@@ -208,8 +210,10 @@ def optimize_ring_assignment(
     offset nearly for free, leaving only the differential spread plus an
     FSR/(2N) quantization residual.
 
-    Required red-shift per ring at rotation ``r`` (linear heater model,
-    P = shift / efficiency, matching :func:`tuning_power_mw`):
+    Required red-shift per ring at rotation ``r`` (linear heater model
+    P = shift / efficiency, the same model as :func:`tuning_power_mw` —
+    but unlike that function, a blue-shift request here is charged its
+    full physical wrap cost ``FSR - |d|``, not ``|d|``):
 
     * ``bidirectional=False`` (default, physical for resistive heaters —
       heaters only red-shift, so a blue-shift request costs the long way
