@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use SiPhon in your research or engineering work, please cite it as below."
+title: "SiPhon: an open-source silicon photonics design toolkit"
+type: software
+authors:
+  - family-names: Romanov
+    given-names: Tristan
+version: 0.1.0
+date-released: 2026-07-23
+license: Apache-2.0
+keywords:
+  - silicon photonics
+  - photonic integrated circuit
+  - photonic EDA
+  - co-packaged optics
+  - optical link budget
+  - S-parameter circuit simulation
+  - Monte Carlo yield analysis
+abstract: >-
+  SiPhon provides material dispersion models, waveguide mode solvers
+  (slab and effective-index method), S-parameter component models,
+  netlist-level photonic circuit simulation, WDM system helpers,
+  closed-form optical link budgets for AI-datacenter interconnects
+  (co-packaged optics and pluggable transceivers), and Monte Carlo
+  corner/yield analysis for photonic integrated circuits.

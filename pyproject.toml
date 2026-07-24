@@ -1,13 +1,50 @@
 [project]
-name = "siphon"
+name = "siphon-photonics"
 version = "0.1.0"
-description = "SiPhon — an open silicon photonics design toolkit: material models, mode solvers, S-matrix circuit simulation, and optical link budgets for AI-datacenter interconnects."
+description = "SiPhon — an open-source silicon photonics design toolkit: material models, waveguide mode solvers, S-matrix photonic circuit simulation, optical link budgets for AI-datacenter interconnects (co-packaged optics, pluggables), and Monte Carlo yield analysis for photonic integrated circuits (PICs)."
 readme = "README.md"
 requires-python = ">=3.13"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Tristan Romanov" }]
+keywords = [
+    "silicon photonics",
+    "photonic integrated circuit",
+    "PIC",
+    "photonics",
+    "photonic EDA",
+    "co-packaged optics",
+    "CPO",
+    "optical interconnect",
+    "optical transceiver",
+    "link budget",
+    "ring resonator",
+    "mode solver",
+    "S-parameters",
+    "circuit simulation",
+    "Monte Carlo",
+    "WDM",
+    "datacom",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Manufacturing",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "numpy>=2.5.1",
     "scipy>=1.18.0",
 ]
+
+[project.urls]
+# TODO: point at the real GitHub location once the remote is set in this clone
+Homepage = "https://github.com/romanov360/etalon"
+Repository = "https://github.com/romanov360/etalon"
 
 [dependency-groups]
 dev = [

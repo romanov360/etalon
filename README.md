@@ -1,8 +1,15 @@
 # SiPhon
 
-**An open silicon photonics design toolkit** — material dispersion models, waveguide mode
-solvers, S-parameter circuit simulation, WDM system math, closed-form optical link budgets
-for AI-datacenter interconnects, and Monte Carlo corner/yield analysis.
+**An open-source silicon photonics design toolkit for photonic integrated circuits
+(PICs)** — material dispersion models, waveguide mode solvers, S-parameter photonic
+circuit simulation, WDM system math, closed-form optical link budgets for AI-datacenter
+interconnects (co-packaged optics and pluggable optical transceivers), and Monte Carlo
+corner/yield analysis. Pure Python (numpy/scipy), Apache-2.0.
+
+If you searched for: *photonic circuit simulator Python*, *co-packaged optics link
+budget*, *silicon photonics mode solver*, *ring resonator / MZI S-parameters*,
+*optical transceiver margin calculator*, *photonic EDA*, or *PIC yield Monte Carlo* —
+this is that.
 
 SiPhon is the open-core engine ("Product 0") of the startup thesis developed in this repo:
 the loudest unsolved bottleneck in the AI-datacenter photonics buildout is predicting,
@@ -13,9 +20,19 @@ report behind it (July 2026; 28-agent research run, raw transcripts in
 
 ## Install & test
 
+From source (current):
+
 ```bash
+git clone <this repo> && cd silicon-photonics
 uv sync
 uv run pytest          # 156 tests
+```
+
+The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
+Unidata's meteorology client); the import name stays `siphon`:
+
+```bash
+pip install siphon-photonics   # once published to PyPI
 ```
 
 ## What's inside
@@ -52,6 +69,16 @@ uv run python examples/03_cpo_vs_pluggable.py      # flagship: two link waterfal
 uv run python examples/04_monte_carlo_yield.py     # lane yield + dominant-variation ranking
 ```
 
+## How SiPhon relates to other photonics tools
+
+| Tool | What it is | Relationship |
+|---|---|---|
+| [gdsfactory](https://github.com/gdsfactory/gdsfactory) | Layout/PDK framework for PICs | Complementary — gdsfactory draws the chip; SiPhon budgets and yields the *system* (link margins, corners). No layout in SiPhon. |
+| [SAX](https://github.com/flaport/sax) | JAX-based S-parameter circuit solver | Overlapping on circuit solving; SiPhon adds the physics models, link-budget/WDM/yield layer, with zero JAX/GPU dependency. |
+| Ansys Lumerical (INTERCONNECT/FDTD/MODE), Synopsys OptoCompiler | Commercial photonic EDA | SiPhon is the open, scriptable alternative for *system-level budgeting and corner exploration* — not a replacement for full-vectorial device signoff. |
+| VPIphotonics / Keysight ADS optical links | Commercial E-O-E link simulation | SiPhon covers the closed-form IM-DD subset (waterfalls, sensitivities, penalties, pJ/bit) openly and transparently. |
+| [MEEP](https://github.com/NanoComp/meep) / [Tidy3D](https://www.flexcompute.com/tidy3d/) | FDTD electromagnetic solvers | Upstream of SiPhon: use them to extract device S-parameters; use SiPhon to compose circuits and links from them. |
+
 ## Scope and honesty
 
 Everything here is closed-form or semi-analytic physics — fast, transparent, and
@@ -78,3 +105,7 @@ phase-convention conjugation, an extinction-ratio double-count, and a
 laser-sharing energy-conservation bug — were fixed and pinned with regression
 tests (`tests/test_review_regressions.py`); transcripts in
 `docs/research/raw/workflow-adversarial-review/`.
+
+## License & citation
+
+Apache-2.0 (see [LICENSE](LICENSE)). To cite SiPhon, use [CITATION.cff](CITATION.cff).
