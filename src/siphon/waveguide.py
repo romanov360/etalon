@@ -117,6 +117,8 @@ class Waveguide:
 
     @lru_cache(maxsize=4096)
     def _neff_cached(self, wavelength_um: float, mode: str) -> float:
+        if mode.upper() not in ("TE", "TM"):
+            raise ValueError(f"mode must be 'TE' or 'TM', got {mode!r}")
         n_core = materials.index(self.core, wavelength_um)
         n_clad = materials.index(self.cladding, wavelength_um)
         n_box = materials.index(self.box, wavelength_um)

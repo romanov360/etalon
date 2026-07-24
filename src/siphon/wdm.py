@@ -129,24 +129,31 @@ def tuning_power_mw(
 
 
 def expected_tuning_power_mw(
-    fsr_nm: float, efficiency_nm_per_mw: float = TUNING_EFFICIENCY_NM_PER_MW
+    fsr_nm: float,
+    efficiency_nm_per_mw: float = TUNING_EFFICIENCY_NM_PER_MW,
+    bidirectional: bool = False,
 ) -> float:
     """Mean per-ring heater power (mW) to lock a ring under fabrication offset.
 
-    Derivation: fabrication variation places the as-built resonance
-    uniformly over one FSR relative to the target channel. Because the
-    resonance comb is periodic, one can always lock to the *nearest*
-    resonance order, so the required shift is uniform on [0, FSR/2] with
-    mean FSR/4. Expected power = (FSR/4) / efficiency.
+    Fabrication variation places the as-built resonance uniformly over one
+    FSR relative to the target channel.
 
-    Assumes bidirectional wrap-around tuning (or, for heat-only red shift,
-    that the target is redefined to the nearest order red of the resonance,
-    which gives the same uniform [0, FSR/2] distribution on average across
-    a bank).
+    * ``bidirectional=False`` (default, physical for resistive heaters):
+      heaters can only red-shift the resonance, so the ring must always be
+      heated forward to the next resonance order at or red of the target.
+      The required shift is uniform on [0, FSR) with mean **FSR/2**.
+      Expected power = (FSR/2) / efficiency.
+    * ``bidirectional=True`` (idealized: thermal bias point pre-budgeted, or
+      a tuner that shifts both ways): lock to the *nearest* order, shift
+      uniform on [0, FSR/2] with mean **FSR/4**.
+
+    Real systems often operate between the two by pre-biasing every ring
+    near mid-range; use the default for a conservative power budget.
     """
     if fsr_nm <= 0:
         raise ValueError("fsr_nm must be positive")
-    return tuning_power_mw(fsr_nm / 4.0, efficiency_nm_per_mw)
+    detune = fsr_nm / 4.0 if bidirectional else fsr_nm / 2.0
+    return tuning_power_mw(detune, efficiency_nm_per_mw)
 
 
 def resonance_shift_nm_per_k(

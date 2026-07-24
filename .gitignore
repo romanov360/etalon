@@ -11,3 +11,5 @@ wheels/
 
 # Generated example plots (examples/out/.gitkeep is tracked)
 examples/out/*.png
+
+what-claude-did.txt

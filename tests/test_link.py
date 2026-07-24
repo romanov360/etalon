@@ -206,9 +206,20 @@ def test_energy_breakdown_sums_and_sharing():
     parts = ("laser", "modulator", "tia", "tuning", "serdes")
     assert e["total"] == pytest.approx(sum(e[k] for k in parts), rel=1e-12)
     assert all(e[k] >= 0.0 for k in parts)
-    # sharing one laser across 4 lanes divides the laser term by 4
+    # sharing a source does NOT reduce per-line optical power (energy
+    # conservation: N lanes still need N lines of full power); it only
+    # amortizes the per-device overhead term
     e_shared = energy_per_bit_pj(link, n_lanes=4, laser_shared_by=4)
-    assert e_shared["laser"] == pytest.approx(e["laser"] / 4.0, rel=1e-12)
+    assert e_shared["laser"] == pytest.approx(e["laser"], rel=1e-12)
+    e_ovh1 = energy_per_bit_pj(
+        link, n_lanes=4, laser_shared_by=1, laser_overhead_mw_per_device=10.0
+    )
+    e_ovh4 = energy_per_bit_pj(
+        link, n_lanes=4, laser_shared_by=4, laser_overhead_mw_per_device=10.0
+    )
+    agg_gbps = 4 * link.signaling.bit_rate_gbps
+    assert e_ovh1["laser"] - e_shared["laser"] == pytest.approx(40.0 / agg_gbps, rel=1e-9)
+    assert e_ovh4["laser"] - e_shared["laser"] == pytest.approx(10.0 / agg_gbps, rel=1e-9)
     # closed form for the laser term: mW_electrical / aggregate Gb/s
     laser_mw = 4 * 10 ** (link.laser.power_dbm / 10) / link.laser.wpe
     assert e["laser"] == pytest.approx(
@@ -236,8 +247,13 @@ def test_preset_report_contains_everything(factory):
         assert elem.name in text
     for name in link.penalties_db:
         assert name in text
-    for token in ("launched OMA", "received OMA", "RIN penalty", "ER penalty", "MARGIN"):
+    for token in ("launched OMA", "received OMA", "RIN penalty", "MARGIN"):
         assert token in text
+    # ER appears once, at the transmitter conversion — never as an added
+    # receiver-side "ER penalty" row (that would double-count ER, see
+    # LinkBudget.sensitivity_oma_dbm)
+    assert "avg -> outer OMA" in text
+    assert "ER penalty" not in text
 
 
 def test_report_margin_matches_property():

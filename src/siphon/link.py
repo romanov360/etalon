@@ -302,8 +302,13 @@ class LinkBudget:
                         + 10 log10(2 (ER-1)/(ER+1))   [avg -> outer OMA]
         received OMA  = launched OMA - sum(path losses)
         required OMA  = thermal-limited sensitivity OMA
-                        + ER penalty + RIN penalty + explicit penalties
+                        + RIN penalty + explicit penalties
         margin        = received OMA - required OMA
+
+    Finite extinction ratio is charged once, at the transmitter (the
+    avg -> OMA conversion inside ``launched_oma_dbm``) — see
+    ``sensitivity_oma_dbm`` for why :func:`er_penalty_db` must not also be
+    added to an OMA-domain sensitivity.
 
     ``penalties_db`` holds named explicit allocations (ISI/TDECQ, MPI,
     crosstalk via :func:`crosstalk_penalty_db`, aging, ...).
@@ -325,7 +330,7 @@ class LinkBudget:
         er = db_to_linear(self.modulator.extinction_ratio_db)
         if math.isinf(er):
             return 10.0 * math.log10(2.0)
-        return 10.0 * math.log10(2.0 * (er + 1.0) / (er - 1.0))
+        return 10.0 * math.log10(2.0 * (er - 1.0) / (er + 1.0))
 
     @property
     def average_launch_power_dbm(self) -> float:
@@ -372,12 +377,19 @@ class LinkBudget:
         """Required OMA at the receiver, dBm.
 
         Thermal-limited sensitivity (:func:`receiver_sensitivity_oma_dbm`)
-        plus, in order: ER penalty, RIN penalty, then every entry of
-        ``penalties_db``. All penalties are independent dB add-ons — the
-        standard (mildly pessimistic) budgeting composition.
+        plus the RIN penalty and every entry of ``penalties_db``, as
+        independent dB add-ons — the standard (mildly pessimistic) budgeting
+        composition.
+
+        The extinction-ratio effect is NOT added here: this budget is carried
+        in the OMA domain, where finite ER is already charged once at the
+        transmitter via the avg->OMA conversion (``launched_oma_dbm``).
+        :func:`er_penalty_db` — the Agrawal (ER+1)/(ER-1) factor — is the
+        conversion between an average-power sensitivity and this fixed OMA
+        requirement; applying it on top of an OMA budget would double-count
+        ER (it is exactly the same factor as the launch-side conversion).
         """
         s = receiver_sensitivity_oma_dbm(self.photodiode, self.tia, self.signaling)
-        s += er_penalty_db(self.modulator.extinction_ratio_db)
         s += self.rin_penalty_db
         s += sum(self._penalties.values())
         return s
@@ -425,9 +437,6 @@ class LinkBudget:
         lines.append("-" * width)
         s = receiver_sensitivity_oma_dbm(self.photodiode, self.tia, sig)
         row("thermal-limited sensitivity (OMA)", None, s)
-        d = er_penalty_db(self.modulator.extinction_ratio_db)
-        s += d
-        row("ER penalty", +d, s)
         d = self.rin_penalty_db
         s += d
         row("RIN penalty", +d, s)
@@ -448,6 +457,7 @@ def energy_per_bit_pj(
     link: LinkBudget,
     n_lanes: int,
     laser_shared_by: int = 1,
+    laser_overhead_mw_per_device: float = 0.0,
     thermal_tuning_mw_per_lane: float = 0.0,
     serdes_pj_per_bit: float = 4.0,
 ) -> dict[str, float]:
@@ -457,10 +467,14 @@ def energy_per_bit_pj(
     all in pJ/bit averaged over the aggregate bit rate of ``n_lanes``
     identical lanes (1 mW / 1 Gb/s = 1 pJ/bit).
 
-    * laser: one line per lane; ceil(n_lanes / laser_shared_by) lasers
-      each emitting link.laser.power_dbm optically, converted to
-      electrical via wall-plug efficiency (electrical = optical / wpe).
-      ``laser_shared_by`` amortizes a shared source (split or comb line).
+    * laser: every lane must receive link.laser.power_dbm at the launch
+      reference plane, so the emitted optical power scales with n_lanes
+      regardless of how many physical devices supply it — energy
+      conservation forbids feeding N lanes at full per-line power from one
+      per-line-power emitter. Electrical = optical / wpe. Sharing a source
+      (``laser_shared_by`` lanes per device, e.g. a split CW or comb)
+      amortizes only ``laser_overhead_mw_per_device`` (control, TEC,
+      monitoring), not the per-line optical power itself.
     * modulator / tia: the components' energy_fj_per_bit.
     * tuning: per-lane thermal tuning power (ring heaters etc.), mW.
     * serdes: host-side serdes/DSP allocation, pJ/bit (dominant in
@@ -468,10 +482,15 @@ def energy_per_bit_pj(
     """
     if n_lanes < 1 or laser_shared_by < 1:
         raise ValueError("n_lanes and laser_shared_by must be >= 1")
+    if laser_overhead_mw_per_device < 0:
+        raise ValueError("laser_overhead_mw_per_device must be >= 0")
     lane_gbps = link.signaling.bit_rate_gbps
     total_gbps = n_lanes * lane_gbps
     n_lasers = math.ceil(n_lanes / laser_shared_by)
-    laser_mw = n_lasers * dbm_to_mw(link.laser.power_dbm) / link.laser.wpe
+    laser_mw = (
+        n_lanes * dbm_to_mw(link.laser.power_dbm) / link.laser.wpe
+        + n_lasers * laser_overhead_mw_per_device
+    )
     out = {
         "laser": laser_mw / total_gbps,
         "modulator": link.modulator.energy_fj_per_bit * 1e-3,

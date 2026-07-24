@@ -40,7 +40,8 @@ def n_si(wavelength_um):
     wl = _as_array(wavelength_um)
     _check_range(wl, 1.2, 14.0, "Si")
     wl2 = wl**2
-    n2 = 11.6858 + 0.939816 / wl2 + 8.10461e-3 * wl2 / (wl2 - 1.1071**2)
+    l1sq = 1.1071**2
+    n2 = 11.6858 + 0.939816 / wl2 + 8.10461e-3 * l1sq / (wl2 - l1sq)
     return np.sqrt(n2) if np.ndim(wavelength_um) else float(np.sqrt(n2))
 
 

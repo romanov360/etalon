@@ -73,14 +73,18 @@ class TestRingBankLimit:
 
 
 class TestThermalTuning:
-    def test_tuning_power_at_quarter_fsr(self):
-        # FSR = 16 nm -> mean detune 4 nm; at 0.25 nm/mW that is 16 mW
-        assert wdm.tuning_power_mw(4.0, 0.25) == pytest.approx(16.0)
-        assert wdm.expected_tuning_power_mw(16.0, 0.25) == pytest.approx(16.0)
+    def test_tuning_power_heat_only_half_fsr(self):
+        # heat-only heaters red-shift to the next order: mean detune FSR/2.
+        # FSR = 16 nm -> mean detune 8 nm; at 0.25 nm/mW that is 32 mW
+        assert wdm.tuning_power_mw(8.0, 0.25) == pytest.approx(32.0)
+        assert wdm.expected_tuning_power_mw(16.0, 0.25) == pytest.approx(32.0)
 
-    def test_expected_equals_quarter_fsr_detune(self):
+    def test_expected_tuning_bidirectional_is_quarter_fsr(self):
         fsr = 12.8
         assert wdm.expected_tuning_power_mw(fsr) == pytest.approx(
+            wdm.tuning_power_mw(fsr / 2.0)
+        )
+        assert wdm.expected_tuning_power_mw(fsr, bidirectional=True) == pytest.approx(
             wdm.tuning_power_mw(fsr / 4.0)
         )
 

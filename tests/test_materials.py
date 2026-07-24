@@ -1,6 +1,6 @@
 """Tests for siphon.materials: Sellmeier fits, dispatch, and group index.
 
-Reference values at 1.55 um: Si n=3.4776 (Li 1980), SiO2 n=1.4440
+Reference values at 1.55 um: Si n=3.4764 (Li 1980), SiO2 n=1.4440
 (Malitson 1965), Si3N4 n=1.9963 (Luke 2015). Wavelengths in um.
 """
 
@@ -14,7 +14,8 @@ from siphon import materials
 
 
 def test_n_si_1550():
-    assert materials.n_si(1.55) == pytest.approx(3.4776, abs=1e-3)
+    # Li 1980 fit: n^2 = 11.6858 + 0.939816/wl^2 + 8.10461e-3*l1^2/(wl^2-l1^2)
+    assert materials.n_si(1.55) == pytest.approx(3.4764, abs=1e-3)
 
 
 def test_n_sio2_1550():

@@ -15,7 +15,7 @@ report behind it (July 2026; 28-agent research run, raw transcripts in
 
 ```bash
 uv sync
-uv run pytest          # 144 tests
+uv run pytest          # 156 tests
 ```
 
 ## What's inside
@@ -40,7 +40,7 @@ print(wg.neff(1.55), wg.group_index(1.55))   # 2.49, 4.02 (EIM)
 
 cpo = link.preset_cpo_optical_io()
 print(cpo.report())                          # full dB waterfall, TX -> margin
-print(cpo.margin_db)                         # +11.4 dB nominal
+print(cpo.margin_db)                         # +15.1 dB nominal
 ```
 
 ## Examples
@@ -65,9 +65,16 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               144 tests, physics anchored to analytic/known values
+tests/               156 tests, physics anchored to analytic/known values
 examples/            four runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
 ```
+
+The codebase survived a 47-agent adversarial review (5 lenses, every finding
+attacked by a 3-refuter panel): 8 distinct confirmed defects — including a ring
+phase-convention conjugation, an extinction-ratio double-count, and a
+laser-sharing energy-conservation bug — were fixed and pinned with regression
+tests (`tests/test_review_regressions.py`); transcripts in
+`docs/research/raw/workflow-adversarial-review/`.

@@ -9,11 +9,14 @@ at wavelength ``wl[k]`` (um). Row/column order equals ``ports`` order.
 
 * Wavelengths and geometry in um; loss in dB (per cm where named); powers
   in mW as named.
-* Propagation uses the delay convention ``exp(-1j * 2*pi * n_eff * L / wl)``.
-  Ring transfer functions follow Bogaerts et al., Laser Photon. Rev. 6, 47
-  (2012) and are written with ``exp(+1j*phi)`` round-trip phase as in that
-  reference; magnitudes, resonance positions, and linewidths are identical
-  in either sign convention.
+* Propagation uses the delay convention ``exp(-1j * 2*pi * n_eff * L / wl)``,
+  consistently for ALL models. Ring transfer functions follow Bogaerts et
+  al., Laser Photon. Rev. 6, 47 (2012), but with the round-trip phase
+  conjugated to ``exp(-1j*phi)`` — Bogaerts writes ``e^{+i phi}`` under the
+  physics ``e^{-i omega t}`` convention, and using it unconjugated next to
+  ``exp(-1j*beta*L)`` elements flips the sign of ring group delay and breaks
+  interferometric composition in :class:`siphon.circuit.Circuit`. Magnitudes,
+  resonance positions, and linewidths are identical in either convention.
 * All models here are reciprocal (``S == S.T`` at every wavelength).
   Lossless models are unitary, except :class:`YBranch` (see its docstring:
   the reverse combining path radiates, so an ideal 1x2 splitter cannot be
@@ -309,7 +312,8 @@ class GratingCoupler:
 class RingAllPass:
     """All-pass (notch) ring resonator, single bus.
 
-    through = (t - a e^{i phi}) / (1 - t a e^{i phi})  [Bogaerts 2012, Eq. 2]
+    through = (t - a e^{-i phi}) / (1 - t a e^{-i phi})  [Bogaerts 2012,
+    Eq. 2, conjugated into this library's exp(-1j*beta*L) convention]
     with self-coupling t = sqrt(1 - kappa_power), round-trip amplitude
     a = 10**(-loss_db_per_cm * circumference_um * 1e-4 / 20), and round-trip
     phase phi = 2*pi * n_eff(wl) * circumference_um / wl (linearized n_eff).
@@ -348,7 +352,7 @@ class RingAllPass:
         wl = _wl_array(wl)
         a, phi = self._round_trip(wl)
         t = np.sqrt(1.0 - self.kappa_power)
-        ae = a * np.exp(1j * phi)
+        ae = a * np.exp(-1j * phi)
         return _two_port((t - ae) / (1.0 - t * ae))
 
 
@@ -357,16 +361,17 @@ class RingAddDrop:
     """Add-drop ring resonator with two bus waveguides.
 
     Analytic transfer functions per Bogaerts et al., Laser Photon. Rev. 6,
-    47 (2012), Eqs. 4-5, with self-couplings t_i = sqrt(1 - kappa_i),
-    round-trip amplitude a and phase phi as in :class:`RingAllPass`
-    (D = 1 - t1 t2 a e^{i phi}):
+    47 (2012), Eqs. 4-5, conjugated into this library's exp(-1j*beta*L)
+    convention (see module docstring), with self-couplings
+    t_i = sqrt(1 - kappa_i), round-trip amplitude a and phase phi as in
+    :class:`RingAllPass` (D = 1 - t1 t2 a e^{-i phi}):
 
-        in -> through :  (t1 - t2 a e^{i phi}) / D
-        in -> drop    :  -sqrt(kappa1 kappa2) sqrt(a) e^{i phi/2} / D
-        add -> drop   :  (t2 - t1 a e^{i phi}) / D
+        in -> through :  (t1 - t2 a e^{-i phi}) / D
+        in -> drop    :  -sqrt(kappa1 kappa2) sqrt(a) e^{-i phi/2} / D
+        add -> drop   :  (t2 - t1 a e^{-i phi}) / D
         add -> through:  same as in -> drop (device symmetry)
 
-    The drop path traverses half the ring (sqrt(a) e^{i phi/2}); couplers
+    The drop path traverses half the ring (sqrt(a) e^{-i phi/2}); couplers
     are assumed point-like and lossless. in<->add and through<->drop carry
     counter-propagating signals with no direct coupling, so those S entries
     are 0, as are all reflections. The 4x4 is reciprocal, and unitary when
@@ -404,8 +409,8 @@ class RingAddDrop:
         phi = 2.0 * np.pi * neff * self.circumference_um / wl
         t1 = np.sqrt(1.0 - self.kappa1_power)
         t2 = np.sqrt(1.0 - self.kappa2_power)
-        ae = a * np.exp(1j * phi)
-        half = np.sqrt(a) * np.exp(1j * phi / 2.0)
+        ae = a * np.exp(-1j * phi)
+        half = np.sqrt(a) * np.exp(-1j * phi / 2.0)
         denom = 1.0 - t1 * t2 * ae
 
         thru = (t1 - t2 * ae) / denom

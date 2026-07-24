@@ -120,10 +120,13 @@ class MonteCarloResult:
         metric spread (for near-linear responses). Constant parameters get 0.
         """
         out: dict[str, float] = {}
-        m = self.samples
+        ok = ~np.isnan(self.samples)
+        m = self.samples[ok]
+        if m.size < 2:
+            return {name: 0.0 for name in self.param_samples}
         ms = m - m.mean()
         for name, x in self.param_samples.items():
-            xs = x - x.mean()
+            xs = x[ok] - x[ok].mean()
             denom = np.sqrt((xs**2).sum() * (ms**2).sum())
             out[name] = float((xs * ms).sum() / denom) if denom > 0 else 0.0
         return out
