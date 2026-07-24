@@ -4,6 +4,7 @@ C_UM_PER_S = 2.99792458e14  # speed of light, um/s
 C_M_PER_S = 2.99792458e8  # speed of light, m/s
 H_PLANCK_J_S = 6.62607015e-34  # Planck constant, J*s
 Q_ELECTRON_C = 1.602176634e-19  # elementary charge, C
+ELEMENTARY_CHARGE_C = 1.602176634e-19  # elementary charge, C (alias of Q_ELECTRON_C)
 K_BOLTZMANN_J_PER_K = 1.380649e-23  # Boltzmann constant, J/K
 
 # Common telecom bands (wavelength in um)

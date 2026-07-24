@@ -9,12 +9,20 @@ Two levels of model, both fast and dependency-free:
    swapped polarization. Accurate to roughly the percent level for n_eff of
    well-guided modes; use a full vectorial solver for final signoff.
 
+Near modal cutoff the EIM is biased *conservative* (it declares modes guided
+earlier than a full-vectorial solver: e.g. TE1 first appears at ~316 nm strip
+width under EIM versus ~450-500 nm full-vectorial). When a solved mode sits
+within ``NEAR_CUTOFF_NEFF_MARGIN`` of the lateral cladding index the solver
+emits an :class:`EimAccuracyWarning` rather than silently returning a number
+that a vectorial solver might not reproduce. Architecture-level, not signoff.
+
 Conventions: wavelengths and dimensions in um; quasi-TE means dominant
 E-field parallel to the wafer plane.
 """
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from functools import lru_cache
 
@@ -22,6 +30,27 @@ import numpy as np
 from scipy.optimize import brentq
 
 from . import materials
+
+
+class EimAccuracyWarning(UserWarning):
+    """Warns that an EIM result is in the regime where the method is least accurate.
+
+    Emitted when the horizontally-solved effective index sits within
+    ``NEAR_CUTOFF_NEFF_MARGIN`` of the side/cladding effective index, i.e. the
+    mode is marginally guided. Near cutoff the EIM is biased early/conservative
+    (it guides modes a full-vectorial solver would find cut off), so the
+    returned n_eff — and the mode's very existence — should be confirmed with a
+    full-vectorial solver. The numerical result is returned unchanged.
+    """
+
+
+#: Margin (dimensionless, in effective-index units) below which a mode counts
+#: as marginally guided: when the horizontally-solved n_eff sits within this of
+#: the side/cladding effective index, the mode is barely confined laterally —
+#: exactly where the EIM is least trustworthy and biased early/conservative
+#: (validated example: TE1 first guided at ~316 nm strip width under EIM versus
+#: ~450-500 nm full-vectorial). Crossing it triggers :class:`EimAccuracyWarning`.
+NEAR_CUTOFF_NEFF_MARGIN = 5e-3
 
 
 def _slab_dispersion(neff, k0, n_core, n_top, n_bot, thickness, m, polarization):
@@ -116,6 +145,15 @@ class Waveguide:
         """Effective index of the fundamental quasi-TE or quasi-TM mode.
 
         Raises ValueError if the structure guides no such mode.
+
+        If the mode is marginally guided (n_eff within
+        ``NEAR_CUTOFF_NEFF_MARGIN`` of the lateral cladding/slab effective
+        index), an :class:`EimAccuracyWarning` is issued — the EIM is biased
+        conservative near cutoff and the result should be checked with a
+        full-vectorial solver. Because results are memoized (``lru_cache``),
+        the warning fires only on the *first* computation for a given
+        (geometry, wavelength, mode); repeated calls return the cached value
+        silently.
         """
         return self._neff_cached(round(float(wavelength_um), 9), mode)
 
@@ -152,6 +190,17 @@ class Waveguide:
         horiz = slab_neffs(n_center, n_side, n_side, self.width_um, wavelength_um, horiz_pol)
         if not horiz:
             raise ValueError(f"no guided mode for {self!r} at {wavelength_um} um ({mode})")
+        margin = horiz[0] - n_side
+        if margin < NEAR_CUTOFF_NEFF_MARGIN:
+            warnings.warn(
+                f"{self!r}: quasi-{mode.upper()} mode at {wavelength_um} um is "
+                f"marginally guided (n_eff - n_side = {margin:.2e} < "
+                f"{NEAR_CUTOFF_NEFF_MARGIN:.0e}). The EIM is biased "
+                "early/conservative near cutoff; confirm this mode with a "
+                "full-vectorial solver before relying on it.",
+                EimAccuracyWarning,
+                stacklevel=3,
+            )
         return horiz[0]
 
     # --- dispersion ------------------------------------------------------

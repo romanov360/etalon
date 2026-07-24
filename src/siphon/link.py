@@ -10,12 +10,15 @@ Conventions
   rates in GBd, energies in fJ/bit or pJ/bit as named.
 * Modulation amplitude is tracked as *outer* OMA (optical modulation
   amplitude, P_top - P_bottom); receiver sensitivity is likewise an OMA.
-* The receiver is thermal-noise-limited: the TIA input-referred current
-  noise dominates. Shot noise, dark current, and ISI are neglected;
-  RIN, finite extinction ratio, and crosstalk are layered on as separate
-  dB penalties, following standard budgeting practice (Agrawal,
-  *Fiber-Optic Communication Systems*, 4th ed., ch. 4; IEEE 802.3
-  link-budget spreadsheets).
+* The receiver baseline is thermal-noise-limited: the TIA input-referred
+  current noise sets the sensitivity floor. Shot noise (including dark
+  current) is modeled on top as a self-consistent dB penalty evaluated at
+  the top eye level (see :func:`shot_penalty_db`); ISI is neglected.
+  RIN, shot noise, finite extinction ratio, and crosstalk are layered on
+  as separate dB penalties, following standard budgeting practice
+  (Agrawal, *Fiber-Optic Communication Systems*, 4th ed., ch. 4; IEEE
+  802.3 link-budget spreadsheets). RIN and shot compose as independent
+  dB add-ons — standard, mildly pessimistic.
 
 Validity: architecture-level numbers, not compliance signoff. There is no
 TDECQ machinery and no bandwidth/equalization modeling; equalization and
@@ -29,7 +32,7 @@ from dataclasses import dataclass
 
 from scipy.special import erfc, erfcinv
 
-from .constants import db_to_linear, dbm_to_mw, mw_to_dbm
+from .constants import ELEMENTARY_CHARGE_C, db_to_linear, dbm_to_mw, mw_to_dbm
 
 # Noise bandwidth of an optimized baud-rate receiver, as a fraction of the
 # symbol rate. 0.75 * baud is the conventional value for a receiver with
@@ -136,9 +139,9 @@ class Modulator:
 class Photodiode:
     """PIN photodiode.
 
-    ``responsivity_a_per_w`` in A/W. ``dark_current_na`` (nA) is carried
-    for completeness; it is negligible against TIA noise in the
-    thermal-limited sensitivity model and is not used there.
+    ``responsivity_a_per_w`` in A/W. ``dark_current_na`` (nA) contributes
+    shot noise 2 q_e I_d f_n in :func:`shot_penalty_db`; it is usually
+    negligible against TIA noise but is carried through exactly.
     """
 
     responsivity_a_per_w: float
@@ -284,6 +287,58 @@ def rin_penalty_db(
     return -5.0 * math.log10(1.0 - x * x)
 
 
+def shot_penalty_db(
+    pd: Photodiode,
+    tia: Tia,
+    sig: Signaling,
+    extinction_ratio_db: float = math.inf,
+) -> float:
+    """Shot-noise (and dark-current) power penalty, dB, on the thermal budget.
+
+    The thermal-limited baseline requires an outer OMA (watts) of
+    u0 = 2 q (M-1) i_n / R, with i_n = S_i sqrt(f_n) the rms TIA current
+    noise and f_n = 0.75 * baud (NOISE_BANDWIDTH_FRACTION). Photocurrent
+    shot noise is signal-dependent, so it is evaluated self-consistently
+    at the sensitivity point, at the top eye level — whose power at outer
+    extinction ratio ER (linear) is P_top = OMA * k, k = ER/(ER-1)
+    (k = 1 at infinite ER, the same top-eye convention as
+    :func:`rin_penalty_db`). With elementary charge q_e and dark current
+    I_d (A), the top eye reaches Q = q when the required OMA u satisfies
+
+        u R / (2 (M-1)) = q sqrt( i_n^2 + 2 q_e (R k u + I_d) f_n ),
+
+    quadratic in u:  a u^2 - b u - c = 0 with
+
+        a = (R / (2 q (M-1)))^2,   b = 2 q_e R k f_n,
+        c = i_n^2 + 2 q_e I_d f_n,
+        u = (b + sqrt(b^2 + 4 a c)) / (2 a),
+
+    and the penalty is 10 log10(u / u0) >= 0 dB. Composed with the RIN
+    penalty as an independent dB add-on (standard, mildly pessimistic:
+    the two noise variances are not re-summed jointly). Raises ValueError
+    for extinction ratio <= 0 dB. Assumes a PIN photodiode (no avalanche
+    excess noise) and Gaussian statistics; architecture-level accuracy,
+    not signoff.
+    """
+    if extinction_ratio_db <= 0.0:
+        raise ValueError("extinction ratio must be > 0 dB")
+    er = db_to_linear(extinction_ratio_db)
+    k = 1.0 if math.isinf(er) else er / (er - 1.0)
+    q = sig.q_factor
+    m = sig.levels
+    r = pd.responsivity_a_per_w
+    q_e = ELEMENTARY_CHARGE_C
+    i_d_a = pd.dark_current_na * 1e-9
+    f_n_hz = NOISE_BANDWIDTH_FRACTION * sig.rate_gbd * 1e9
+    i_n_a = tia.input_noise_pa_per_sqrt_hz * 1e-12 * math.sqrt(f_n_hz)
+    u0_w = 2.0 * q * (m - 1) * i_n_a / r
+    a = (r / (2.0 * q * (m - 1))) ** 2
+    b = 2.0 * q_e * r * k * f_n_hz
+    c = i_n_a**2 + 2.0 * q_e * i_d_a * f_n_hz
+    u_w = (b + math.sqrt(b * b + 4.0 * a * c)) / (2.0 * a)
+    return 10.0 * math.log10(u_w / u0_w)
+
+
 def crosstalk_penalty_db(agg_crosstalk_db: float) -> float:
     """Power penalty for aggregate in-band crosstalk, dB.
 
@@ -317,8 +372,13 @@ class LinkBudget:
                         + 10 log10(2 (ER-1)/(ER+1))   [avg -> outer OMA]
         received OMA  = launched OMA - sum(path losses)
         required OMA  = thermal-limited sensitivity OMA
-                        + RIN penalty + explicit penalties
+                        + RIN penalty + shot-noise penalty
+                        + explicit penalties
         margin        = received OMA - required OMA
+
+    Shot noise (with dark current) is modeled via :func:`shot_penalty_db`,
+    evaluated at the top eye level like the RIN penalty; RIN and shot
+    compose as independent dB add-ons (standard, mildly pessimistic).
 
     Finite extinction ratio is charged once, at the transmitter (the
     avg -> OMA conversion inside ``launched_oma_dbm``) — see
@@ -389,13 +449,23 @@ class LinkBudget:
         )
 
     @property
+    def shot_penalty_db(self) -> float:
+        """Shot-noise + dark-current penalty at the modulator's ER, dB."""
+        return shot_penalty_db(
+            self.photodiode,
+            self.tia,
+            self.signaling,
+            extinction_ratio_db=self.modulator.extinction_ratio_db,
+        )
+
+    @property
     def sensitivity_oma_dbm(self) -> float:
         """Required OMA at the receiver, dBm.
 
         Thermal-limited sensitivity (:func:`receiver_sensitivity_oma_dbm`)
-        plus the RIN penalty and every entry of ``penalties_db``, as
-        independent dB add-ons — the standard (mildly pessimistic) budgeting
-        composition.
+        plus the RIN penalty, the shot-noise (+ dark current) penalty, and
+        every entry of ``penalties_db``, as independent dB add-ons — the
+        standard (mildly pessimistic) budgeting composition.
 
         The extinction-ratio effect is NOT added here: this budget is carried
         in the OMA domain, where finite ER is already charged once at the
@@ -407,6 +477,7 @@ class LinkBudget:
         """
         s = receiver_sensitivity_oma_dbm(self.photodiode, self.tia, self.signaling)
         s += self.rin_penalty_db
+        s += self.shot_penalty_db
         s += sum(self._penalties.values())
         return s
 
@@ -456,6 +527,9 @@ class LinkBudget:
         d = self.rin_penalty_db
         s += d
         row("RIN penalty", +d, s)
+        d = self.shot_penalty_db
+        s += d
+        row("shot noise penalty (incl. dark)", +d, s)
         for name, pen in self._penalties.items():
             s += pen
             row(f"penalty: {name}", +pen, s)

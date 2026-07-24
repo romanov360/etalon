@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 164 tests
+uv run pytest          # 282 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -40,12 +40,15 @@ pip install siphon-photonics   # once published to PyPI
 | Module | What it does |
 |---|---|
 | `siphon.materials` | Sellmeier refractive-index models (Si, SiO₂, Si₃N₄) with validity ranges, thermo-optic coefficients, material group index |
-| `siphon.waveguide` | Exact three-layer slab TE/TM mode solver; effective-index-method strip/rib solver; n_eff, group index, chromatic dispersion; bend-loss heuristic |
+| `siphon.waveguide` | Exact three-layer slab TE/TM mode solver; effective-index-method strip/rib solver with near-cutoff accuracy warning; n_eff, group index, chromatic dispersion; bend-loss heuristic |
+| `siphon.fdmode` | Semi-vectorial finite-difference mode solver on the cross-section — the in-repo check on the EIM's own approximation |
 | `siphon.components` | S-parameter models: straight, directional coupler, Y-branch, phase shifters, grating coupler, all-pass & add-drop rings (Bogaerts 2012), analytic MZI |
 | `siphon.circuit` | Netlist-level S-matrix circuit solver (subnetwork reduction with proper feedback handling — rings built from couplers work) |
-| `siphon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
-| `siphon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, aggregate crosstalk |
-| `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, parametric yield, sensitivity ranking, ASCII distribution reports |
+| `siphon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
+| `siphon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
+| `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking |
+| `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
+| `siphon.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
 
 ## Quick taste
 
@@ -57,7 +60,7 @@ print(wg.neff(1.55), wg.group_index(1.55))   # 2.49, 4.02 (EIM)
 
 cpo = link.preset_cpo_optical_io()
 print(cpo.report())                          # full dB waterfall, TX -> margin
-print(cpo.margin_db)                         # +15.1 dB nominal
+print(cpo.margin_db)                         # +15.0 dB nominal
 ```
 
 ## Examples
@@ -67,6 +70,8 @@ uv run python examples/01_waveguide_explorer.py    # mode solving, single-mode l
 uv run python examples/02_ring_wdm_filter.py       # 4-channel ring demux design
 uv run python examples/03_cpo_vs_pluggable.py      # flagship: two link waterfalls + pJ/bit
 uv run python examples/04_monte_carlo_yield.py     # lane yield + dominant-variation ranking
+uv run python examples/05_parameter_extraction.py  # fit a ring model to noisy "measured" spectra
+uv run python examples/06_architecture_pareto.py   # margin vs pJ/bit Pareto sweep
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -92,8 +97,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               164 tests, physics anchored to analytic/known values
-examples/            four runnable demos
+tests/               282 tests, physics anchored to analytic/known values
+examples/            six runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources

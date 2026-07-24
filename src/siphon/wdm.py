@@ -163,6 +163,118 @@ def expected_tuning_power_mw(
     return tuning_power_mw(detune, efficiency_nm_per_mw)
 
 
+@dataclass(frozen=True)
+class RingAssignment:
+    """Result of a barrel-shift channel-assignment optimization.
+
+    Attributes
+    ----------
+    rotation:
+        Optimal barrel shift ``r``: ring ``i`` serves channel
+        ``(i + r) mod N``. Shared by the whole bank.
+    per_ring_mw:
+        Heater power per ring (mW) at the optimal rotation, in ring order.
+    total_mw:
+        Sum of ``per_ring_mw`` (mW).
+    mean_mw_per_ring:
+        ``total_mw / N`` (mW).
+    naive_total_mw:
+        Total heater power (mW) at rotation 0 (ring ``i`` serves channel
+        ``i``), for comparison against the optimized assignment.
+    """
+
+    rotation: int
+    per_ring_mw: tuple[float, ...]
+    total_mw: float
+    mean_mw_per_ring: float
+    naive_total_mw: float
+
+
+def optimize_ring_assignment(
+    offsets_nm,
+    fsr_nm: float,
+    efficiency_nm_per_mw: float = TUNING_EFFICIENCY_NM_PER_MW,
+    bidirectional: bool = False,
+) -> RingAssignment:
+    """Barrel-shift channel assignment minimizing ring-bank tuning power.
+
+    N rings serve N channels equally spaced by ``delta = fsr_nm / N``
+    within one FSR. Ring ``i`` nominally resonates at channel ``i``; its
+    as-built resonance sits ``offsets_nm[i]`` nm red (+) or blue (-) of
+    that nominal. Because channel labels are a WDM-plan convention, the
+    bank may cyclically rotate its assignment: under barrel shift ``r``
+    ring ``i`` serves channel ``(i + r) mod N``, and all N rotations are
+    valid plans. The optimal rotation absorbs the common-mode fabrication
+    offset nearly for free, leaving only the differential spread plus an
+    FSR/(2N) quantization residual.
+
+    Required red-shift per ring at rotation ``r`` (linear heater model,
+    P = shift / efficiency, matching :func:`tuning_power_mw`):
+
+    * ``bidirectional=False`` (default, physical for resistive heaters —
+      heaters only red-shift, so a blue-shift request costs the long way
+      around to the next resonance order):
+      ``h_i(r) = (r * delta - offsets_nm[i]) mod fsr_nm``
+    * ``bidirectional=True`` (idealized two-way tuner): lock to the
+      nearest order, ``h_i(r) = min(x, fsr_nm - x)`` with ``x`` the same
+      modular detune.
+
+    All N rotations are enumerated and the one with the lowest total
+    power is returned (lowest rotation index on ties). Note that in the
+    red-shift-only model every per-ring shift satisfies
+    ``h_i(r) = r*delta - offsets_nm[i] + m*fsr_nm`` for integer ``m``, so
+    rotation totals differ only by integer multiples of the FSR and exact
+    ties between rotations are common, not exceptional.
+
+    Compare :func:`expected_tuning_power_mw`, the pessimistic per-ring
+    bound when the assignment is *not* optimized (offset uniform over one
+    FSR, mean FSR/2 or FSR/4 of shift). Assumes identical rings on one
+    bus (same FSR and tuning efficiency for all); ``r`` is shared by the
+    whole bank — it relabels the WDM plan, it is not a per-ring degree of
+    freedom. Architecture-level estimate, not signoff.
+
+    Parameters
+    ----------
+    offsets_nm:
+        Array-like of as-built resonance offsets in nm, one per ring,
+        red-positive. Length N >= 1; all values must be finite.
+    fsr_nm:
+        Ring free spectral range in nm (> 0).
+    efficiency_nm_per_mw:
+        Heater tuning efficiency in nm/mW (> 0).
+    bidirectional:
+        Tuner sign convention, see above.
+    """
+    if fsr_nm <= 0:
+        raise ValueError("fsr_nm must be positive")
+    if efficiency_nm_per_mw <= 0:
+        raise ValueError("efficiency_nm_per_mw must be positive")
+    offsets = np.atleast_1d(np.asarray(offsets_nm, dtype=float))
+    if offsets.ndim != 1:
+        raise ValueError("offsets_nm must be a 1-D array-like")
+    n = offsets.size
+    if n < 1:
+        raise ValueError("offsets_nm must contain at least one ring")
+    if not np.all(np.isfinite(offsets)):
+        raise ValueError("offsets_nm must be finite")
+
+    delta = fsr_nm / n
+    rotations = np.arange(n)
+    # x[r, i] = red-shift-only detune of ring i under barrel shift r.
+    x = (rotations[:, None] * delta - offsets[None, :]) % fsr_nm
+    shifts = np.minimum(x, fsr_nm - x) if bidirectional else x
+    powers = shifts / efficiency_nm_per_mw
+    totals = powers.sum(axis=1)
+    best = int(np.argmin(totals))
+    return RingAssignment(
+        rotation=best,
+        per_ring_mw=tuple(float(p) for p in powers[best]),
+        total_mw=float(totals[best]),
+        mean_mw_per_ring=float(totals[best] / n),
+        naive_total_mw=float(totals[0]),
+    )
+
+
 def resonance_shift_nm_per_k(
     wl_um: float, ng: float, dneff_dT: float = materials.DN_DT_SI * STRIP_TE_CONFINEMENT
 ) -> float:

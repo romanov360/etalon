@@ -105,7 +105,12 @@ def test_launched_oma_closed_form_at_finite_er():
 def test_required_oma_composition_charges_er_exactly_once():
     lb = link.preset_pluggable_dr4()
     thermal = link.receiver_sensitivity_oma_dbm(lb.photodiode, lb.tia, lb.signaling)
-    expected = thermal + lb.rin_penalty_db + sum((lb.penalties_db or {}).values())
+    expected = (
+        thermal
+        + lb.rin_penalty_db
+        + lb.shot_penalty_db
+        + sum((lb.penalties_db or {}).values())
+    )
     assert lb.sensitivity_oma_dbm == pytest.approx(expected, abs=1e-12)
     # ER must not be charged again on the sensitivity side via er_penalty_db:
     # the only ER dependence left in the OMA-domain sensitivity is the RIN
@@ -124,7 +129,11 @@ def test_required_oma_composition_charges_er_exactly_once():
         penalties_db=lb.penalties_db,
     )
     delta = lb.sensitivity_oma_dbm - hi_er.sensitivity_oma_dbm
-    assert delta == pytest.approx(lb.rin_penalty_db - hi_er.rin_penalty_db, abs=1e-12)
+    assert delta == pytest.approx(
+        (lb.rin_penalty_db - hi_er.rin_penalty_db)
+        + (lb.shot_penalty_db - hi_er.shot_penalty_db),
+        abs=1e-12,
+    )
     # ... and that RIN difference is nowhere near the Agrawal ER factor,
     # which would reappear if someone adds er_penalty_db back to sensitivity
     assert delta < 0.5 * link.er_penalty_db(lb.modulator.extinction_ratio_db)
@@ -147,8 +156,17 @@ def test_margin_from_first_principles():
     er = 10.0 ** 0.6
     p_avg_mw = 10.0 ** ((10.0 - 3.0) / 10.0) * (er + 1.0) / (2.0 * er)  # CW -> avg
     oma_launch_mw = 2.0 * p_avg_mw * (er - 1.0) / (er + 1.0)
-    i_n_a = 10.0e-12 * math.sqrt(0.75 * 50.0e9)
-    oma_req_mw = 2.0 * q * 1.0 * i_n_a / 1.0 * 1e3  # (M-1)=1, R=1 A/W
+    f_n_hz = 0.75 * 50.0e9
+    i_n_a = 10.0e-12 * math.sqrt(f_n_hz)
+    # required OMA incl. shot noise at the top level (RIN is -inf here):
+    # u R / (2(M-1)) = q sqrt(i_n^2 + 2 q_e (R k u + I_d) f_n), quadratic in u
+    q_e = 1.602176634e-19
+    r_resp, m, i_dark_a = 1.0, 2, 10.0e-9  # Photodiode dark default 10 nA
+    k = er / (er - 1.0)
+    a = (r_resp / (2.0 * q * (m - 1))) ** 2
+    b = 2.0 * q_e * r_resp * k * f_n_hz
+    c = i_n_a**2 + 2.0 * q_e * i_dark_a * f_n_hz
+    oma_req_mw = (b + math.sqrt(b * b + 4.0 * a * c)) / (2.0 * a) * 1e3
     expected_margin = (
         10.0 * math.log10(oma_launch_mw) - 4.0 - 10.0 * math.log10(oma_req_mw)
     )

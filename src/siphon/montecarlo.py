@@ -19,6 +19,20 @@ Typical use::
 
     result = run(margin, params, n=10_000, seed=1)
     print(result.report(threshold=0.0))
+
+Module-level (max-of-N) yield
+-----------------------------
+A co-packaged-optics module carries N parallel lanes and is scrapped if any
+single lane misses spec, so module yield is P(ALL lanes pass) — not the
+per-lane yield. Within one die the variation is mostly common-mode (all
+lanes shift together with lithography, film thickness, temperature) with a
+smaller lane-to-lane differential spread; :class:`CommonDifferential`
+models that split and :func:`run_module` propagates it to lane and module
+yield. The gap between the two IS the known-good-die problem.
+
+All of this is architecture-level statistics over declared variations, not
+foundry-calibrated signoff: use it to size margins and lane counts, not to
+predict absolute yield of a specific process.
 """
 
 from __future__ import annotations
@@ -78,6 +92,74 @@ class Uniform:
 
 
 Param = Normal | Uniform
+
+
+@dataclass(frozen=True)
+class CommonDifferential:
+    """Parameter with a shared common-mode part and a per-lane differential part.
+
+    Models within-die variation of an N-lane module: one common draw
+    ``common ~ N(0, sigma_common)`` is shared by every lane of a module
+    (lithography, film thickness, die temperature move all lanes together),
+    and each lane adds an independent ``diff ~ N(0, sigma_diff)``::
+
+        value[trial, lane] = mean + common[trial] + diff[trial, lane]
+
+    so the marginal of each lane is N(mean, sqrt(sigma_common^2 +
+    sigma_diff^2)) and the correlation between two lanes of the same module
+    is sigma_common^2 / (sigma_common^2 + sigma_diff^2). Units are whatever
+    the named parameter uses (dB, um, nm, ...).
+
+    Optional ``low``/``high`` truncate the TOTAL value by resampling (like
+    :class:`Normal`, no clipping mass at the bounds). Truncation is
+    hierarchical to preserve the shared common mode: the common draw is
+    first resampled until ``mean + common`` lies in [low, high], then each
+    offending lane's differential draw is resampled until its total does.
+    In the ``sigma_diff = 0`` limit this is the exact truncated normal; with
+    ``sigma_diff > 0`` the total's marginal is close to, but not exactly,
+    the truncated N(mean, sqrt(sigma_common^2 + sigma_diff^2)).
+    """
+
+    mean: float
+    sigma_common: float
+    sigma_diff: float
+    low: float | None = None
+    high: float | None = None
+
+    def __post_init__(self):
+        if self.sigma_common < 0:
+            raise ValueError("sigma_common must be >= 0")
+        if self.sigma_diff < 0:
+            raise ValueError("sigma_diff must be >= 0")
+        if self.low is not None and self.high is not None and self.low >= self.high:
+            raise ValueError("low must be < high")
+
+    def sample(self, n_modules: int, n_lanes: int, rng: np.random.Generator) -> np.ndarray:
+        """Draw a (n_modules, n_lanes) array with one common draw per module."""
+        lo = -np.inf if self.low is None else self.low
+        hi = np.inf if self.high is None else self.high
+        common = rng.normal(0.0, self.sigma_common, n_modules)
+        if self.low is not None or self.high is not None:
+            for _ in range(1000):
+                bad = (self.mean + common < lo) | (self.mean + common > hi)
+                if not bad.any():
+                    break
+                common[bad] = rng.normal(0.0, self.sigma_common, int(bad.sum()))
+            else:
+                raise ValueError(
+                    "CommonDifferential: truncation bounds reject nearly all samples"
+                )
+        x = self.mean + common[:, None] + rng.normal(0.0, self.sigma_diff, (n_modules, n_lanes))
+        for _ in range(1000):
+            bad = (x < lo) | (x > hi)
+            if not bad.any():
+                return x
+            center = np.broadcast_to(self.mean + common[:, None], x.shape)[bad]
+            x[bad] = center + rng.normal(0.0, self.sigma_diff, int(bad.sum()))
+        raise ValueError("CommonDifferential: truncation bounds reject nearly all samples")
+
+
+ModuleParam = CommonDifferential | Normal | Uniform
 
 
 @dataclass
@@ -190,3 +272,146 @@ def run(
         except ValueError:
             out[i] = np.nan
     return MonteCarloResult(metric_name=metric_name, samples=out, param_samples=draws)
+
+
+@dataclass
+class ModuleYieldResult:
+    """Lane-metric samples and lane vs module yield of an N-lane module.
+
+    ``samples[i, j]`` is the metric of lane j in module trial i; a NaN entry
+    is a lane whose metric raised ValueError — that lane fails every spec,
+    and with it its module. The difference between :meth:`lane_yield_above`
+    and :meth:`module_yield_above` is the known-good-die (KGD) problem: with
+    N lanes per module and any lane-level fallout, module yield collapses
+    toward lane_yield**N unless the variation is common-mode, which is why
+    CPO economics hinge on pre-bond lane test and on how much of the spread
+    is shared across a die.
+    """
+
+    metric_name: str
+    samples: np.ndarray  # shape (n_modules, n_lanes)
+    param_samples: dict[str, np.ndarray]  # each shape (n_modules, n_lanes)
+
+    @property
+    def n_modules(self) -> int:
+        return self.samples.shape[0]
+
+    @property
+    def n_lanes(self) -> int:
+        return self.samples.shape[1]
+
+    @property
+    def n_failed(self) -> int:
+        """Lanes (not modules) where the metric raised (recorded as NaN)."""
+        return int(np.isnan(self.samples).sum())
+
+    @property
+    def mean(self) -> float:
+        """NaN-aware mean of the lane metric over all lanes and modules."""
+        return float(np.nanmean(self.samples))
+
+    @property
+    def std(self) -> float:
+        """NaN-aware sample std (ddof=1) of the lane metric."""
+        ok = self.samples.size - self.n_failed
+        return float(np.nanstd(self.samples, ddof=1)) if ok > 1 else 0.0
+
+    def percentile(self, p) -> float:
+        """NaN-aware percentile of the lane metric."""
+        return float(np.nanpercentile(self.samples, p))
+
+    def lane_yield_above(self, spec: float) -> float:
+        """Fraction of lanes with metric > spec. NaN lanes count as failed."""
+        return float(np.mean(self.samples > spec))
+
+    def lane_yield_below(self, spec: float) -> float:
+        """Fraction of lanes with metric < spec. NaN lanes count as failed."""
+        return float(np.mean(self.samples < spec))
+
+    def module_yield_above(self, spec: float) -> float:
+        """Fraction of modules where ALL lanes have metric > spec.
+
+        One bad (or NaN) lane scraps the module — this is the max-of-N /
+        known-good-die statistic, always <= :meth:`lane_yield_above`.
+        """
+        return float(np.mean(np.all(self.samples > spec, axis=1)))
+
+    def module_yield_below(self, spec: float) -> float:
+        """Fraction of modules where ALL lanes have metric < spec.
+
+        One bad (or NaN) lane scraps the module — always <=
+        :meth:`lane_yield_below`.
+        """
+        return float(np.mean(np.all(self.samples < spec, axis=1)))
+
+    def report(self, threshold: float | None = None) -> str:
+        """Plain-text report showing lane and module yield side by side."""
+        lines = [
+            f"Module yield — {self.metric_name}  "
+            f"(n_modules = {self.n_modules}, n_lanes = {self.n_lanes})",
+            "-" * 66,
+            f"  lane metric: mean {self.mean:+9.3f}   std {self.std:8.3f}   "
+            f"P5 {self.percentile(5):+8.3f}   P50 {self.percentile(50):+8.3f}   "
+            f"P95 {self.percentile(95):+8.3f}",
+        ]
+        if threshold is not None:
+            lane = self.lane_yield_above(threshold)
+            module = self.module_yield_above(threshold)
+            lines.append(
+                f"  yield ({self.metric_name} > {threshold:g}):   "
+                f"lane {100.0 * lane:6.2f} %   module {100.0 * module:6.2f} %   "
+                f"(known-good-die gap {100.0 * (lane - module):.2f} pts)"
+            )
+        if self.n_failed:
+            lines.append(f"  failed lanes (metric raised): {self.n_failed}")
+        return "\n".join(lines)
+
+
+def run_module(
+    metric: Callable[..., float],
+    params: dict[str, ModuleParam],
+    n_lanes: int,
+    n_modules: int,
+    seed: int = 0,
+    metric_name: str = "metric",
+) -> ModuleYieldResult:
+    """Monte Carlo over ``n_modules`` module trials of ``n_lanes`` lanes each.
+
+    ``params`` maps parameter name -> distribution. A
+    :class:`CommonDifferential` shares one common draw across the lanes of a
+    module (plus an independent per-lane differential draw); plain
+    :class:`Normal` / :class:`Uniform` parameters are drawn fully
+    independently per lane (the sigma_common = 0 equivalent), and their
+    ``name`` must match the dict key.
+
+    ``metric`` is called per lane with keyword arguments, one scalar per
+    parameter: ``metric(**{name: value})`` (note: :func:`run` passes a single
+    dict instead). Evaluation is a Python loop of n_modules * n_lanes calls,
+    so cost scales linearly with both; keep the metric cheap or the counts
+    modest. Lanes where the metric raises ValueError are recorded as NaN:
+    the lane fails any spec and scraps its module, and it is excluded from
+    mean/std/percentiles. Sampling is reproducible for a given seed.
+    """
+    if n_lanes < 1:
+        raise ValueError("n_lanes must be >= 1")
+    if n_modules < 1:
+        raise ValueError("n_modules must be >= 1")
+    for name, p in params.items():
+        if isinstance(p, (Normal, Uniform)) and p.name != name:
+            raise ValueError(f"parameter key {name!r} does not match its name {p.name!r}")
+    rng = np.random.default_rng(seed)
+    draws: dict[str, np.ndarray] = {}
+    for name, p in params.items():
+        if isinstance(p, CommonDifferential):
+            draws[name] = p.sample(n_modules, n_lanes, rng)
+        else:
+            draws[name] = p.sample(n_modules * n_lanes, rng).reshape(n_modules, n_lanes)
+    out = np.empty((n_modules, n_lanes))
+    for i in range(n_modules):
+        for j in range(n_lanes):
+            corner = {name: float(x[i, j]) for name, x in draws.items()}
+            try:
+                out[i, j] = float(metric(**corner))
+            except ValueError:
+                out[i, j] = np.nan
+    return ModuleYieldResult(metric_name=metric_name, samples=out, param_samples=draws)

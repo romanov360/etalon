@@ -84,7 +84,15 @@ before probing; docstring notes the degenerate regime. No warnings leak
 ## Scope extensions suggested (roadmap, not defects)
 
 Recorded verbatim as candidate work, ranked by the reviewer's
-value-per-effort against docs/THESIS.md; none implemented in this pass:
+value-per-effort against docs/THESIS.md. UPDATE (later 2026-07-24): all of
+these except E4 were implemented in a 7-agent build workflow
+(docs/research/raw/workflow-validation-extensions/) — E1 -> siphon.extract +
+examples/05, E2 -> montecarlo.CommonDifferential/run_module, E3 ->
+wdm.optimize_ring_assignment, E5 -> siphon.reliability, E6 -> siphon.fdmode,
+plus the shot-noise gap-fill (link.shot_penalty_db, presets moved to DR4
++9.00 / CPO +14.95 dB), the near-cutoff EimAccuracyWarning, and the
+margin-vs-pJ/bit Pareto harness (examples/06). E4 (E-O-E co-sim bridge) was
+deliberately deferred: highest risk of pseudo-accurate output for the effort.
 
 1. **E1 — Parameter extraction** (thesis-critical): fit component/circuit
    models to measured spectra via least squares; the on-ramp to the
