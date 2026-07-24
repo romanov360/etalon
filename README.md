@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 289 tests
+uv run pytest          # 323 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -47,6 +47,7 @@ pip install siphon-photonics   # once published to PyPI
 | `siphon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
 | `siphon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
 | `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking |
+| `siphon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
 | `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
 | `siphon.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
 
@@ -72,6 +73,7 @@ uv run python examples/03_cpo_vs_pluggable.py      # flagship: two link waterfal
 uv run python examples/04_monte_carlo_yield.py     # lane yield + dominant-variation ranking
 uv run python examples/05_parameter_extraction.py  # fit a ring model to noisy "measured" spectra
 uv run python examples/06_architecture_pareto.py   # margin vs pJ/bit Pareto sweep
+uv run python examples/07_filter_isi.py            # demux passband -> computed ISI penalty
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -97,8 +99,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               289 tests, physics anchored to analytic/known values
-examples/            six runnable demos
+tests/               323 tests, physics anchored to analytic/known values
+examples/            seven runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources

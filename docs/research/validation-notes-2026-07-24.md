@@ -92,7 +92,8 @@ wdm.optimize_ring_assignment, E5 -> siphon.reliability, E6 -> siphon.fdmode,
 plus the shot-noise gap-fill (link.shot_penalty_db, presets moved to DR4
 +9.00 / CPO +14.95 dB), the near-cutoff EimAccuracyWarning, and the
 margin-vs-pJ/bit Pareto harness (examples/06). E4 (E-O-E co-sim bridge) was
-deliberately deferred: highest risk of pseudo-accurate output for the effort.
+initially deferred (highest risk of pseudo-accurate output), then built
+(2026-07-25) under strict scope discipline as siphon.isi — see below.
 
 1. **E1 — Parameter extraction** (thesis-critical): fit component/circuit
    models to measured spectra via least squares; the on-ramp to the
@@ -155,3 +156,37 @@ repo. The substantive ones:
   bandwidth is always 0.75 x baud); Pareto example lane-count duplicates
   collapsed; extract test comment/perturbation corrected (3e-3, genuinely
   ~40% of a resonance order); EIM warning stacklevel note (accepted as-is).
+
+## E4 built: siphon.isi (2026-07-25)
+
+Built as a 1-builder + 3-reviewer workflow (transcripts in
+docs/research/raw/workflow-e4-isi/). Scope discipline that made it safe:
+passive linear field filtering only (driven ring modulators explicitly out
+of scope — static S(lambda) cannot represent a time-varying cavity),
+chirp-free sqrt(P) modulation, no equalization, budgeting-grade not TDECQ.
+The engine is an exhaustive cyclic de Bruijn time-domain eye (every symbol
+subsequence the filter memory can see, field-domain FFT filtering,
+square-law detection) rather than a closed-form approximation — the
+reference IS the product. Flat IL is normalized out and reported
+separately so it is booked once, in the path.
+
+The adversarial pass (hash audit clean) converged on one high finding
+from all three lenses: bulk group delay >= 1 UI mislabeled every sample
+and returned penalty = inf for a physically penalty-free delay (a 2 mm
+routing waveguide broke it). Fixed in two stages: (1) bulk delay is
+estimated from magnitude-weighted adjacent-bin phase differences of the
+intensity-vs-ideal cross spectrum (no unwrap — unwrap corrupts at
+zero-magnitude bins; exact for pure delays) and removed on the FIELD as
+pure linear phase; (2) the eye search additionally scans integer symbol
+offsets (+/- memory), because a ring's stored energy parks the eye
+optimum ~1 UI after any correlation alignment — validated against a
+brute-force all-offsets scan (1.631 vs 1.635 dB). Also fixed: a
+grid-density guard (coarse wavelength grids silently attenuated
+fast-rotating phasors — up to 0.08 dB fabricated penalty at 201 points),
+a NaN-in-s21 silent propagation, and example 07 now books the demux IL
+in the path AND the ISI penalty in penalties_db (each exactly once):
+CPO margin +14.95 -> +14.60 dB (-0.166 IL, -0.186 ISI at 32 GBd, the
+reviewer-verified value). Physics reviewer cross-checks that passed:
+delay-sign convention against a Straight of known group delay, and an
+analytic one-symbol echo H = 1 + 0.2 exp(-2j pi f T) reproduced to 1e-6
+(penalty 1.760913 dB, IL 1.583625 dB).
