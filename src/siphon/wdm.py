@@ -16,6 +16,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from . import materials
+
 # Speed of light expressed so that f[GHz] * wl[um] = C_UM_GHZ.
 # c = 2.99792458e14 um/s = 2.99792458e14 um*Hz = 2.99792458e5 um*GHz.
 C_UM_GHZ = 2.99792458e5
@@ -26,6 +28,11 @@ C_UM_GHZ = 2.99792458e5
 # thermal isolation (undercut rings reach far higher); see e.g.
 # Padmaraju & Bergman, Nanophotonics 3, 269 (2014).
 TUNING_EFFICIENCY_NM_PER_MW = 0.25
+
+# Typical fraction of the silicon material thermo-optic coefficient seen by
+# the effective index of a 450x220 nm strip TE mode (core confinement; the
+# oxide cladding's much smaller dn/dT is neglected).
+STRIP_TE_CONFINEMENT = 0.85
 
 
 @dataclass(frozen=True)
@@ -157,7 +164,7 @@ def expected_tuning_power_mw(
 
 
 def resonance_shift_nm_per_k(
-    wl_um: float, ng: float, dneff_dT: float = 1.86e-4 * 0.85
+    wl_um: float, ng: float, dneff_dT: float = materials.DN_DT_SI * STRIP_TE_CONFINEMENT
 ) -> float:
     """Thermal shift of a ring resonance, d(lambda)/dT in nm/K.
 
@@ -165,9 +172,8 @@ def resonance_shift_nm_per_k(
     n_eff L = m lambda, including first-order dispersion via n_g).
 
     The default dn_eff/dT scales the silicon material thermo-optic
-    coefficient (1.86e-4 /K, :data:`siphon.materials.DN_DT_SI`) by a typical
-    core confinement factor of 0.85 for a 450x220 nm strip TE mode; the
-    oxide cladding's much smaller dn/dT is neglected. For 1.55 um and
+    coefficient :data:`siphon.materials.DN_DT_SI` by the typical strip-TE
+    confinement factor :data:`STRIP_TE_CONFINEMENT`. For 1.55 um and
     n_g = 4.2 this gives ~0.058 nm/K (~58 pm/K), consistent with measured
     Si microrings (~50-80 pm/K).
     """

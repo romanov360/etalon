@@ -107,7 +107,9 @@ def test_required_oma_composition_charges_er_exactly_once():
     thermal = link.receiver_sensitivity_oma_dbm(lb.photodiode, lb.tia, lb.signaling)
     expected = thermal + lb.rin_penalty_db + sum((lb.penalties_db or {}).values())
     assert lb.sensitivity_oma_dbm == pytest.approx(expected, abs=1e-12)
-    # thermal-limited OMA requirement is ER-independent; only launch changes
+    # ER must not be charged again on the sensitivity side via er_penalty_db:
+    # the only ER dependence left in the OMA-domain sensitivity is the RIN
+    # noise being evaluated at P_top = OMA*ER/(ER-1) (2026-07-24 validation)
     hi_er = link.LinkBudget(
         laser=lb.laser,
         modulator=link.Modulator(
@@ -121,7 +123,11 @@ def test_required_oma_composition_charges_er_exactly_once():
         signaling=lb.signaling,
         penalties_db=lb.penalties_db,
     )
-    assert hi_er.sensitivity_oma_dbm == pytest.approx(lb.sensitivity_oma_dbm, abs=1e-12)
+    delta = lb.sensitivity_oma_dbm - hi_er.sensitivity_oma_dbm
+    assert delta == pytest.approx(lb.rin_penalty_db - hi_er.rin_penalty_db, abs=1e-12)
+    # ... and that RIN difference is nowhere near the Agrawal ER factor,
+    # which would reappear if someone adds er_penalty_db back to sensitivity
+    assert delta < 0.5 * link.er_penalty_db(lb.modulator.extinction_ratio_db)
     assert hi_er.launched_oma_dbm > lb.launched_oma_dbm
 
 

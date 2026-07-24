@@ -42,7 +42,6 @@ dependencies = [
 ]
 
 [project.urls]
-# TODO: point at the real GitHub location once the remote is set in this clone
 Homepage = "https://github.com/romanov360/etalon"
 Repository = "https://github.com/romanov360/etalon"
 

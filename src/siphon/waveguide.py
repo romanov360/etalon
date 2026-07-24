@@ -52,7 +52,9 @@ def slab_neffs(
     """Effective indices of all guided modes of a three-layer slab.
 
     Returns a list sorted from fundamental (highest n_eff) down; empty list
-    if the slab guides no mode at this wavelength/polarization.
+    if the slab guides no mode at this wavelength/polarization. Index
+    contrasts below the ~2e-9 root-bracketing epsilon are numerically
+    degenerate and report no modes (real platforms sit >= 1e-3 above it).
     """
     if thickness_um <= 0:
         return []
@@ -62,6 +64,8 @@ def slab_neffs(
     n_min = max(n_top, n_bot)
     eps = 1e-9
     lo, hi = n_min + eps, n_core - eps
+    if lo >= hi:  # contrast below bracketing epsilon: degenerate, no solve
+        return []
     out: list[float] = []
     for m in range(max_modes):
         f_lo = _slab_dispersion(lo, k0, n_core, n_top, n_bot, thickness_um, m, polarization)

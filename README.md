@@ -23,9 +23,9 @@ report behind it (July 2026; 28-agent research run, raw transcripts in
 From source (current):
 
 ```bash
-git clone <this repo> && cd silicon-photonics
+git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 156 tests
+uv run pytest          # 164 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -92,7 +92,7 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               156 tests, physics anchored to analytic/known values
+tests/               164 tests, physics anchored to analytic/known values
 examples/            four runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
@@ -104,7 +104,12 @@ attacked by a 3-refuter panel): 8 distinct confirmed defects — including a rin
 phase-convention conjugation, an extinction-ratio double-count, and a
 laser-sharing energy-conservation bug — were fixed and pinned with regression
 tests (`tests/test_review_regressions.py`); transcripts in
-`docs/research/raw/workflow-adversarial-review/`.
+`docs/research/raw/workflow-adversarial-review/`. A second, independent
+validation pass (2026-07-24) confirmed the core algebra and surfaced four more
+findings — notably RIN noise evaluated at OMA instead of the true top level
+(~0.56 dB hidden optimism at low ER) and a batched rewrite of the circuit
+solve — all rolled in and pinned (`tests/test_validation_regressions.py`,
+notes in `docs/research/validation-notes-2026-07-24.md`).
 
 ## License & citation
 

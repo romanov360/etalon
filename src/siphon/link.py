@@ -242,24 +242,39 @@ def er_penalty_db(er_db: float) -> float:
     return 10.0 * math.log10((er + 1.0) / (er - 1.0))
 
 
-def rin_penalty_db(rin_db_hz: float, rate_gbd: float, q: float, levels: int) -> float:
+def rin_penalty_db(
+    rin_db_hz: float,
+    rate_gbd: float,
+    q: float,
+    levels: int,
+    extinction_ratio_db: float = math.inf,
+) -> float:
     """Laser RIN power penalty, dB, for a thermal-limited PAM-M receiver.
 
-    The top level P_top ~ OMA carries relative intensity noise of rms
-    r = sqrt(RIN * f_n), f_n = 0.75 * baud. Requiring the top eye
+    Relative intensity noise is evaluated at the top level, whose power at
+    outer extinction ratio ER (linear) is P_top = OMA * ER/(ER-1) — equal
+    to OMA only at infinite ER. With rms relative noise
+    r = sqrt(RIN * f_n), f_n = 0.75 * baud, requiring the top eye
     (spacing OMA/(M-1)) to still reach Q = q against the combined
     thermal + RIN noise inflates the needed OMA by
 
-        penalty = -5 log10(1 - (2 q r (M-1))^2)
+        penalty = -5 log10(1 - (2 q r' (M-1))^2),    r' = r * ER/(ER-1)
 
     (same structure as Agrawal 4th ed., eq. 4.7.3, generalized to PAM-M
-    with the noise evaluated at the top level). Raises ValueError when
-    2 q r (M-1) >= 1: RIN alone then makes the target BER unreachable at
+    with the noise evaluated at the top level). At the low ERs real
+    modulators run (4-6 dB) the ER/(ER-1) factor is 1.4-1.7x and roughly
+    doubles the penalty versus evaluating at OMA; the default infinite ER
+    reproduces the classic P_top ~ OMA form. Raises ValueError when
+    2 q r' (M-1) >= 1: RIN alone then makes the target BER unreachable at
     any power.
     """
     _check_levels(levels)
+    if extinction_ratio_db <= 0.0:
+        raise ValueError("extinction ratio must be > 0 dB")
+    er = db_to_linear(extinction_ratio_db)
+    top_over_oma = 1.0 if math.isinf(er) else er / (er - 1.0)
     f_n_hz = NOISE_BANDWIDTH_FRACTION * rate_gbd * 1e9
-    r = math.sqrt(db_to_linear(rin_db_hz) * f_n_hz)
+    r = math.sqrt(db_to_linear(rin_db_hz) * f_n_hz) * top_over_oma
     x = 2.0 * q * r * (levels - 1)
     if x >= 1.0:
         raise ValueError(
@@ -370,6 +385,7 @@ class LinkBudget:
             self.signaling.rate_gbd,
             self.signaling.q_factor,
             self.signaling.levels,
+            extinction_ratio_db=self.modulator.extinction_ratio_db,
         )
 
     @property

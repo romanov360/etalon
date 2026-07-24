@@ -151,24 +151,28 @@ class Circuit:
         for m in range(0, n_i, 2):
             perm[m, m + 1] = perm[m + 1, m] = 1.0
 
-        out = np.empty((len(wl), len(ext), len(ext)), dtype=complex)
-        eye = np.eye(n_i)
-        for k in range(len(wl)):
-            s_ee = s_block[k][np.ix_(ext, ext)]
-            if n_i == 0:
-                out[k] = s_ee
-                continue
-            s_ei = s_block[k][np.ix_(ext, internal)]
-            s_ie = s_block[k][np.ix_(internal, ext)]
-            s_ii = s_block[k][np.ix_(internal, internal)]
-            m_int = eye - s_ii @ perm
-            if not np.all(np.isfinite(m_int)) or np.linalg.cond(m_int) > _COND_LIMIT:
-                raise np.linalg.LinAlgError(
-                    f"singular internal network at wavelength index {k} "
-                    f"(wl = {wl[k]} um): lossless resonant loop or gain"
-                )
-            out[k] = s_ee + s_ei @ perm @ np.linalg.solve(m_int, s_ie)
-        return out
+        # All wavelengths solved as one stacked system (matmul, cond and
+        # solve broadcast over the leading axis) — same math per slice as a
+        # per-wavelength loop, order of magnitude faster on dense sweeps.
+        s_ee = s_block[:, ext[:, None], ext[None, :]]
+        if n_i == 0:
+            return s_ee
+        s_ei = s_block[:, ext[:, None], internal[None, :]]
+        s_ie = s_block[:, internal[:, None], ext[None, :]]
+        s_ii = s_block[:, internal[:, None], internal[None, :]]
+        m_int = np.eye(n_i) - s_ii @ perm
+        finite = np.isfinite(m_int).reshape(len(wl), -1).all(axis=1)
+        if finite.all():
+            bad = np.flatnonzero(np.linalg.cond(m_int) > _COND_LIMIT)
+        else:
+            bad = np.flatnonzero(~finite)
+        if bad.size:
+            k = int(bad[0])
+            raise np.linalg.LinAlgError(
+                f"singular internal network at wavelength index {k} "
+                f"(wl = {wl[k]} um): lossless resonant loop or gain"
+            )
+        return s_ee + s_ei @ perm @ np.linalg.solve(m_int, s_ie)
 
     # --- convenience ---------------------------------------------------------
 
