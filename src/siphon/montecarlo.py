@@ -30,6 +30,19 @@ smaller lane-to-lane differential spread; :class:`CommonDifferential`
 models that split and :func:`run_module` propagates it to lane and module
 yield. The gap between the two IS the known-good-die problem.
 
+Whole-bank (jointly-coupled) yield
+-----------------------------------
+:func:`run_module` calls its metric once per lane, independently — fine
+when each lane's outcome only depends on that lane's own draws. A WDM ring
+bank breaks that assumption: :func:`siphon.thermal.solve_coupled_powers`
+solves a linear system across ALL rings on the bus at once, so ring i's
+achievable margin depends on every other ring's fabrication offset in the
+same trial. :func:`run_bank` and :class:`BankParam` give the metric the
+whole bank's draws per trial instead of one lane's, and
+:class:`BankYieldResult` reports the same ring-vs-bank known-good-die gap
+as :class:`ModuleYieldResult` — plus a bank-wide failure mode (crosstalk
+makes the assignment physically unlockable) that has no per-lane analogue.
+
 All of this is architecture-level statistics over declared variations, not
 foundry-calibrated signoff: use it to size margins and lane counts, not to
 predict absolute yield of a specific process.
@@ -438,3 +451,219 @@ def run_module(
             except ValueError:
                 out[i, j] = np.nan
     return ModuleYieldResult(metric_name=metric_name, samples=out, param_samples=draws)
+
+
+# --- whole-bank (jointly-coupled) yield ---------------------------------------
+
+
+@dataclass(frozen=True)
+class BankParam:
+    """Parameter correlated across the N rings of ONE WDM bank, per trial.
+
+    Same common+differential split as :class:`CommonDifferential`
+    (``value[trial, ring] = mean + common[trial] + diff[trial, ring]``),
+    but sampled as a full ring array per trial for :func:`run_bank` rather
+    than per-lane for :func:`run_module` — the distinction matters because
+    :func:`run_bank`'s metric sees the WHOLE bank at once (needed for
+    :func:`siphon.thermal.solve_coupled_powers`, which cannot be evaluated
+    ring-by-ring: one ring's required heater power depends on every other
+    ring's draw in the same trial). No truncation support (unlike
+    :class:`CommonDifferential`) — fold hard bounds into the metric if
+    needed, since a bank-wide metric usually wants to see out-of-bound
+    draws as part of the physics (e.g. an unreachable thermal lock) rather
+    than have them resampled away.
+    """
+
+    name: str
+    mean: float
+    sigma_common: float
+    sigma_diff: float
+
+    def __post_init__(self):
+        if self.sigma_common < 0:
+            raise ValueError("sigma_common must be >= 0")
+        if self.sigma_diff < 0:
+            raise ValueError("sigma_diff must be >= 0")
+
+    def sample(self, n_trials: int, n_rings: int, rng: np.random.Generator) -> np.ndarray:
+        """Draw a (n_trials, n_rings) array with one common draw per trial."""
+        common = rng.normal(0.0, self.sigma_common, n_trials)
+        diff = rng.normal(0.0, self.sigma_diff, (n_trials, n_rings))
+        return self.mean + common[:, None] + diff
+
+
+BankSample = BankParam | Normal | Uniform
+
+
+@dataclass
+class BankYieldResult:
+    """Per-ring metric samples and ring vs bank yield of an N-ring WDM bank.
+
+    ``samples[i, j]`` is the metric of ring j in bank trial i. A whole ROW
+    of NaN marks a trial where :func:`run_bank`'s metric raised ValueError
+    for the trial as a whole (e.g. :func:`siphon.thermal.solve_coupled_powers`
+    finding the crosstalk-coupled lock unreachable) — the failure is
+    bank-wide, not attributable to one ring, so every ring in that trial is
+    recorded as failed. The gap between :meth:`ring_yield_above` and
+    :meth:`bank_yield_above` is the same known-good-die shape as
+    :class:`ModuleYieldResult`, but for channels sharing one WDM bank
+    instead of lanes sharing one die: correlated fabrication offsets alone
+    move some rings together, while ring-to-ring thermal crosstalk (unlike
+    plain common-mode variation) can additionally make some assignments
+    physically unlockable regardless of power spent — a failure mode with
+    no per-lane analogue in :class:`ModuleYieldResult`.
+    """
+
+    metric_name: str
+    samples: np.ndarray  # shape (n_trials, n_rings)
+    param_samples: dict[str, np.ndarray]  # each shape (n_trials, n_rings)
+
+    @property
+    def n_trials(self) -> int:
+        return self.samples.shape[0]
+
+    @property
+    def n_rings(self) -> int:
+        return self.samples.shape[1]
+
+    @property
+    def n_failed_trials(self) -> int:
+        """Trials where the metric raised for the whole bank (all-NaN row)."""
+        return int(np.all(np.isnan(self.samples), axis=1).sum())
+
+    @property
+    def mean(self) -> float:
+        """NaN-aware mean of the per-ring metric over all trials and rings."""
+        return float(np.nanmean(self.samples))
+
+    @property
+    def std(self) -> float:
+        ok = self.samples.size - int(np.isnan(self.samples).sum())
+        return float(np.nanstd(self.samples, ddof=1)) if ok > 1 else 0.0
+
+    def percentile(self, p) -> float:
+        return float(np.nanpercentile(self.samples, p))
+
+    def ring_yield_above(self, spec: float) -> float:
+        """Fraction of (trial, ring) pairs with metric > spec. NaN counts as failed."""
+        return float(np.mean(self.samples > spec))
+
+    def ring_yield_below(self, spec: float) -> float:
+        """Fraction of (trial, ring) pairs with metric < spec. NaN counts as failed."""
+        return float(np.mean(self.samples < spec))
+
+    def bank_yield_above(self, spec: float) -> float:
+        """Fraction of trials where EVERY ring has metric > spec.
+
+        The max-of-N statistic for a whole bank, always
+        <= :meth:`ring_yield_above`. A failed trial (all-NaN row) counts as
+        a bank failure automatically, since ``NaN > spec`` is False.
+        """
+        return float(np.mean(np.all(self.samples > spec, axis=1)))
+
+    def bank_yield_below(self, spec: float) -> float:
+        """Fraction of trials where EVERY ring has metric < spec.
+
+        For specs that fail on being too HIGH (e.g. a max-temperature or
+        max-crosstalk limit) rather than too LOW. Always
+        <= :meth:`ring_yield_below`; a failed trial (all-NaN row) counts as
+        a bank failure automatically, since ``NaN < spec`` is False.
+        """
+        return float(np.mean(np.all(self.samples < spec, axis=1)))
+
+    def report(self, threshold: float | None = None) -> str:
+        """Plain-text report showing ring and bank yield side by side."""
+        lines = [
+            f"Bank yield — {self.metric_name}  "
+            f"(n_trials = {self.n_trials}, n_rings = {self.n_rings})",
+            "-" * 66,
+            f"  ring metric: mean {self.mean:+9.3f}   std {self.std:8.3f}   "
+            f"P5 {self.percentile(5):+8.3f}   P50 {self.percentile(50):+8.3f}   "
+            f"P95 {self.percentile(95):+8.3f}",
+        ]
+        if threshold is not None:
+            ring = self.ring_yield_above(threshold)
+            bank = self.bank_yield_above(threshold)
+            lines.append(
+                f"  yield ({self.metric_name} > {threshold:g}):   "
+                f"ring {100.0 * ring:6.2f} %   bank {100.0 * bank:6.2f} %   "
+                f"(known-good-die gap {100.0 * (ring - bank):.2f} pts)"
+            )
+        if self.n_failed_trials:
+            lines.append(
+                f"  failed trials (metric raised for the whole bank): "
+                f"{self.n_failed_trials}"
+            )
+        return "\n".join(lines)
+
+
+def run_bank(
+    metric: Callable[..., np.ndarray],
+    params: dict[str, BankSample],
+    n_rings: int,
+    n_trials: int,
+    seed: int = 0,
+    metric_name: str = "metric",
+) -> BankYieldResult:
+    """Monte Carlo over ``n_trials`` whole-bank draws of ``n_rings`` rings each.
+
+    Unlike :func:`run_module` (which calls ``metric`` once per lane with
+    scalar arguments), ``metric`` here is called ONCE PER TRIAL with each
+    parameter's FULL ``(n_rings,)`` array, and must return an
+    ``(n_rings,)`` array of per-ring metric values (or raise ValueError to
+    fail the whole trial). This whole-bank shape is required whenever the
+    metric involves a joint solve across rings — the motivating case is
+    :func:`siphon.thermal.solve_coupled_powers`, where ring i's required
+    heater power depends on every other ring's fabrication offset in the
+    same trial, so the metric cannot be decomposed into independent
+    per-ring calls the way :func:`run_module`'s can.
+
+    ``params`` maps parameter name -> distribution. A :class:`BankParam`
+    shares one common (die-level) draw across the rings of a trial, plus
+    an independent per-ring differential draw; plain :class:`Normal` /
+    :class:`Uniform` parameters are drawn fully independently per ring
+    (the ``sigma_common = 0`` equivalent), and their ``name`` must match
+    the dict key.
+
+    A trial where ``metric`` raises ValueError is recorded as an all-NaN
+    row (every ring in that trial fails — see :class:`BankYieldResult`).
+    Sampling is reproducible for a given seed.
+
+    Parameters
+    ----------
+    metric : ``metric(**{name: array of shape (n_rings,)}) -> array of
+        shape (n_rings,)``.
+    params : dict of parameter name -> :class:`BankParam` / :class:`Normal`
+        / :class:`Uniform`.
+    n_rings : rings per bank trial (>= 1).
+    n_trials : number of independent bank trials (>= 1).
+    """
+    if n_rings < 1:
+        raise ValueError("n_rings must be >= 1")
+    if n_trials < 1:
+        raise ValueError("n_trials must be >= 1")
+    for name, p in params.items():
+        if isinstance(p, (Normal, Uniform, BankParam)) and p.name != name:
+            raise ValueError(f"parameter key {name!r} does not match its name {p.name!r}")
+    rng = np.random.default_rng(seed)
+    draws: dict[str, np.ndarray] = {}
+    for name, p in params.items():
+        if isinstance(p, BankParam):
+            draws[name] = p.sample(n_trials, n_rings, rng)
+        else:
+            draws[name] = p.sample(n_trials * n_rings, rng).reshape(n_trials, n_rings)
+    out = np.empty((n_trials, n_rings))
+    for i in range(n_trials):
+        corner = {name: x[i] for name, x in draws.items()}
+        try:
+            result = np.asarray(metric(**corner), dtype=float)
+        except ValueError:
+            out[i, :] = np.nan
+            continue
+        if result.shape != (n_rings,):
+            raise ValueError(
+                f"metric must return an array of shape ({n_rings},); got "
+                f"{result.shape} on trial {i}"
+            )
+        out[i, :] = result
+    return BankYieldResult(metric_name=metric_name, samples=out, param_samples=draws)

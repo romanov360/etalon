@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 400 tests
+uv run pytest          # 413 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -47,7 +47,7 @@ pip install siphon-photonics   # once published to PyPI
 | `siphon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
 | `siphon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
 | `siphon.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
-| `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking |
+| `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking, and whole-bank (jointly-coupled) yield for metrics — like thermal-crosstalk-coupled ring tuning — that can't be decomposed lane-by-lane |
 | `siphon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
 | `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
 | `siphon.touchstone` | Touchstone (.sNp) file I/O: read/write measured or foundry-exported S-parameter data (MA/DB/RI, all frequency units) into the same `ports` + `s_params(wl)` protocol as any SiPhon component — the real-data on-ramp into `siphon.extract`/`siphon.circuit` |
@@ -78,6 +78,7 @@ uv run python examples/06_architecture_pareto.py   # margin vs pJ/bit Pareto swe
 uv run python examples/07_filter_isi.py            # demux passband -> computed ISI penalty
 uv run python examples/08_thermal_crosstalk.py     # ring-bank thermal crosstalk vs. tuning power
 uv run python examples/09_touchstone_roundtrip.py  # write/read a .s2p file, fit a model to it
+uv run python examples/10_wdm_bank_yield.py        # whole-bank yield: fab variation x thermal crosstalk
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -103,8 +104,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               400 tests, physics anchored to analytic/known values
-examples/            nine runnable demos
+tests/               413 tests, physics anchored to analytic/known values
+examples/            ten runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
@@ -139,7 +140,14 @@ inspecting raw written bytes; it found two real parsing gaps — a
 disagreeing duplicate option line silently misconverting prior rows,
 and rejection of legal inline data-line comments — both fixed and
 pinned, plus added coverage for descending-frequency files and
-`Circuit.connect()`-cascaded measured components.
+`Circuit.connect()`-cascaded measured components. The whole-bank Monte
+Carlo (`siphon.montecarlo.run_bank`/`BankParam`, 2026-08-17) had its
+common+differential sampling statistics, all-NaN-row failure semantics,
+and yield-statistic NaN-handling independently re-verified by large-sample
+simulation; the review found a validation gap (`BankParam`'s name field
+wasn't key-matched like `Normal`/`Uniform`'s) and an overstated claim in
+the accompanying example's narrative (sigma_common's effect on bank yield
+is real, just ~15x smaller than sigma_diff's) — both fixed.
 
 ## License & citation
 
