@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-# Generated example plots (examples/out/.gitkeep is tracked)
+# Generated example outputs (examples/out/.gitkeep is tracked)
 examples/out/*.png
+examples/out/*.s2p
 
 what-claude-did.txt

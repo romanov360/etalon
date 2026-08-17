@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 355 tests
+uv run pytest          # 400 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -50,6 +50,7 @@ pip install siphon-photonics   # once published to PyPI
 | `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking |
 | `siphon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
 | `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
+| `siphon.touchstone` | Touchstone (.sNp) file I/O: read/write measured or foundry-exported S-parameter data (MA/DB/RI, all frequency units) into the same `ports` + `s_params(wl)` protocol as any SiPhon component — the real-data on-ramp into `siphon.extract`/`siphon.circuit` |
 | `siphon.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
 
 ## Quick taste
@@ -76,6 +77,7 @@ uv run python examples/05_parameter_extraction.py  # fit a ring model to noisy "
 uv run python examples/06_architecture_pareto.py   # margin vs pJ/bit Pareto sweep
 uv run python examples/07_filter_isi.py            # demux passband -> computed ISI penalty
 uv run python examples/08_thermal_crosstalk.py     # ring-bank thermal crosstalk vs. tuning power
+uv run python examples/09_touchstone_roundtrip.py  # write/read a .s2p file, fit a model to it
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -101,8 +103,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               355 tests, physics anchored to analytic/known values
-examples/            eight runnable demos
+tests/               400 tests, physics anchored to analytic/known values
+examples/            nine runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
@@ -130,6 +132,14 @@ adversarial re-derivation of their core algebra from physical first
 principles; thermal crosstalk's review found no defects but tightened
 the exponential-kernel near-field honesty caveat and added edge-case
 regression tests (n=1, coincident rings, realistic 8-ring bank scale).
+The Touchstone file reader (`siphon.touchstone`, 2026-08-17) went
+through an adversarial review that hand-verified the notoriously
+error-prone 2-port column order (S11/S21/S12/S22, not row-major) by
+inspecting raw written bytes; it found two real parsing gaps — a
+disagreeing duplicate option line silently misconverting prior rows,
+and rejection of legal inline data-line comments — both fixed and
+pinned, plus added coverage for descending-frequency files and
+`Circuit.connect()`-cascaded measured components.
 
 ## License & citation
 
