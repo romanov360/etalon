@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 413 tests
+uv run pytest          # 434 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -49,6 +49,7 @@ pip install siphon-photonics   # once published to PyPI
 | `siphon.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
 | `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking, and whole-bank (jointly-coupled) yield for metrics — like thermal-crosstalk-coupled ring tuning — that can't be decomposed lane-by-lane |
 | `siphon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
+| `siphon.equalize` | Closed-form zero-forcing FFE tap solver: symbol-spaced pulse response of a passive filter, Toeplitz tap solve, and the noise-enhancement penalty equalization always costs — the priced version of `siphon.isi`'s "treat as an upper bound with an FFE receiver" caveat |
 | `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
 | `siphon.touchstone` | Touchstone (.sNp) file I/O: read/write measured or foundry-exported S-parameter data (MA/DB/RI, all frequency units) into the same `ports` + `s_params(wl)` protocol as any SiPhon component — the real-data on-ramp into `siphon.extract`/`siphon.circuit` |
 | `siphon.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
@@ -79,6 +80,7 @@ uv run python examples/07_filter_isi.py            # demux passband -> computed 
 uv run python examples/08_thermal_crosstalk.py     # ring-bank thermal crosstalk vs. tuning power
 uv run python examples/09_touchstone_roundtrip.py  # write/read a .s2p file, fit a model to it
 uv run python examples/10_wdm_bank_yield.py        # whole-bank yield: fab variation x thermal crosstalk
+uv run python examples/11_ffe_equalization.py      # zero-forcing FFE vs. an unequalized ISI penalty
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -104,8 +106,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               413 tests, physics anchored to analytic/known values
-examples/            ten runnable demos
+tests/               434 tests, physics anchored to analytic/known values
+examples/            eleven runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
@@ -147,7 +149,22 @@ and yield-statistic NaN-handling independently re-verified by large-sample
 simulation; the review found a validation gap (`BankParam`'s name field
 wasn't key-matched like `Normal`/`Uniform`'s) and an overstated claim in
 the accompanying example's narrative (sigma_common's effect on bank yield
-is real, just ~15x smaller than sigma_diff's) — both fixed.
+is real, just ~15x smaller than sigma_diff's) — both fixed. The
+zero-forcing FFE equalizer (`siphon.equalize`, 2026-08-17) went through
+two adversarial rounds: the first found two real silent-garbage bugs — a
+bulk group delay or a dominant postcursor tap could lock the cursor onto
+near-zero energy and report a plausible-looking but meaningless result
+(e.g. +63 dB noise enhancement, no error), and a fixed zero-padding
+guard gave an artificially optimistic residual-ISI reading on a
+high-Q-ring stress case. Both fixed (cursor now globally peak-seeks and
+raises if the peak falls outside the requested tap span; padding now
+adaptively doubles until the response provably decays, raising rather
+than guessing if it can't). A follow-up round hand-verified both fixes
+under harder adversarial pressure (fractional delays, near-tied peaks,
+a forced cap-trip) and found the fixes hold, plus one narrow residual
+edge (near-tied multipath peaks can flip cursor choice discontinuously
+— documented, not hit by realistic single-ring channels) and a test
+that didn't actually exercise the padding fix — both addressed.
 
 ## License & citation
 
