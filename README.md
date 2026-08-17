@@ -102,6 +102,15 @@ signoff, and the presets are published-data-plausible illustrations, not measure
 The point of the open engine is exactly that gap: the proprietary layer the thesis builds
 toward is calibration against measured wafer/test data.
 
+Of the five bottlenecks [docs/RESEARCH.md](docs/RESEARCH.md) names as the industry's
+unclaimed middle (lasers, packaging/fiber-attach, test/known-good-die, ring thermal
+tuning, yield/variability), SiPhon now directly models three: thermal tuning
+(`siphon.thermal`), yield/variability (`siphon.montecarlo`, including whole-bank yield),
+and the test/known-good-die on-ramp (`siphon.touchstone` for real measured data,
+`siphon.montecarlo.run_bank` for the max-of-N bank-scrap statistic). Lasers and
+packaging/fiber-attach are hardware problems outside a software toolkit's scope and
+stay that way on purpose.
+
 ## Repo map
 
 ```
