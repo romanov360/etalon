@@ -25,7 +25,7 @@ From source (current):
 ```bash
 git clone https://github.com/romanov360/etalon.git && cd etalon
 uv sync
-uv run pytest          # 323 tests
+uv run pytest          # 355 tests
 ```
 
 The distribution name is `siphon-photonics` (the bare name `siphon` on PyPI belongs to
@@ -46,6 +46,7 @@ pip install siphon-photonics   # once published to PyPI
 | `siphon.circuit` | Netlist-level S-matrix circuit solver (subnetwork reduction with proper feedback handling — rings built from couplers work) |
 | `siphon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
 | `siphon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
+| `siphon.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
 | `siphon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking |
 | `siphon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
 | `siphon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
@@ -74,6 +75,7 @@ uv run python examples/04_monte_carlo_yield.py     # lane yield + dominant-varia
 uv run python examples/05_parameter_extraction.py  # fit a ring model to noisy "measured" spectra
 uv run python examples/06_architecture_pareto.py   # margin vs pJ/bit Pareto sweep
 uv run python examples/07_filter_isi.py            # demux passband -> computed ISI penalty
+uv run python examples/08_thermal_crosstalk.py     # ring-bank thermal crosstalk vs. tuning power
 ```
 
 ## How SiPhon relates to other photonics tools
@@ -99,8 +101,8 @@ toward is calibration against measured wafer/test data.
 
 ```
 src/siphon/          the toolkit
-tests/               323 tests, physics anchored to analytic/known values
-examples/            seven runnable demos
+tests/               355 tests, physics anchored to analytic/known values
+examples/            eight runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
@@ -121,7 +123,13 @@ extensions that followed (extraction, module yield, ring assignment,
 reliability, FD solver, shot noise) went through their own 7-reviewer
 adversarial pass: 14 findings, all resolved — including an exact joint
 RIN+shot noise solve replacing the optimistic independent-dB composition
-(`tests/test_extension_review_regressions.py`).
+(`tests/test_extension_review_regressions.py`). The E-O-E bridge
+(`siphon.isi`, 2026-07-25) and ring-to-ring thermal crosstalk
+(`siphon.thermal`, 2026-08-17) each went through an independent
+adversarial re-derivation of their core algebra from physical first
+principles; thermal crosstalk's review found no defects but tightened
+the exponential-kernel near-field honesty caveat and added edge-case
+regression tests (n=1, coincident rings, realistic 8-ring bank scale).
 
 ## License & citation
 
