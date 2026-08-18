@@ -1,4 +1,4 @@
-"""Tests for siphon.wdm.optimize_ring_assignment (barrel-shift tuning optimizer).
+"""Tests for etalon.wdm.optimize_ring_assignment (barrel-shift tuning optimizer).
 
 Physics anchors are analytic or independently re-derived (brute-force
 enumeration in plain Python), never the code's own output.
@@ -7,7 +7,7 @@ enumeration in plain Python), never the code's own output.
 import numpy as np
 import pytest
 
-from siphon import wdm
+from etalon import wdm
 
 
 def brute_force_best(offsets, fsr, efficiency, bidirectional):

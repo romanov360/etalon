@@ -288,7 +288,7 @@ def resonance_shift_nm_per_k(
     n_eff L = m lambda, including first-order dispersion via n_g).
 
     The default dn_eff/dT scales the silicon material thermo-optic
-    coefficient :data:`siphon.materials.DN_DT_SI` by the typical strip-TE
+    coefficient :data:`etalon.materials.DN_DT_SI` by the typical strip-TE
     confinement factor :data:`STRIP_TE_CONFINEMENT`. For 1.55 um and
     n_g = 4.2 this gives ~0.058 nm/K (~58 pm/K), consistent with measured
     Si microrings (~50-80 pm/K).

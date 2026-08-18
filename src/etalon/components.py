@@ -15,7 +15,7 @@ at wavelength ``wl[k]`` (um). Row/column order equals ``ports`` order.
   conjugated to ``exp(-1j*phi)`` — Bogaerts writes ``e^{+i phi}`` under the
   physics ``e^{-i omega t}`` convention, and using it unconjugated next to
   ``exp(-1j*beta*L)`` elements flips the sign of ring group delay and breaks
-  interferometric composition in :class:`siphon.circuit.Circuit`. Magnitudes,
+  interferometric composition in :class:`etalon.circuit.Circuit`. Magnitudes,
   resonance positions, and linewidths are identical in either convention.
 * All models here are reciprocal (``S == S.T`` at every wavelength).
   Lossless models are unitary, except :class:`YBranch` (see its docstring:

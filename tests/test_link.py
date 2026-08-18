@@ -1,10 +1,10 @@
-"""Tests for siphon.link: BER/Q math, penalties, budgets, energy, presets."""
+"""Tests for etalon.link: BER/Q math, penalties, budgets, energy, presets."""
 
 import math
 
 import pytest
 
-from siphon.link import (
+from etalon.link import (
     LinkBudget,
     Laser,
     LossElement,

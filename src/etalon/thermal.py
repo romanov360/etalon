@@ -1,8 +1,8 @@
 """Ring-to-ring thermal crosstalk for microring WDM banks.
 
-:mod:`siphon.wdm` prices the heater power a ring needs to lock its OWN
-resonance (:func:`siphon.wdm.tuning_power_mw`,
-:func:`siphon.wdm.optimize_ring_assignment`) but treats every ring as
+:mod:`etalon.wdm` prices the heater power a ring needs to lock its OWN
+resonance (:func:`etalon.wdm.tuning_power_mw`,
+:func:`etalon.wdm.optimize_ring_assignment`) but treats every ring as
 thermally isolated. On a real chip a ring's heater warms the shared
 substrate/cladding, and that heat reaches neighboring rings too — a
 resistive heater a few microns away detunes its neighbor by tens of pm,
@@ -56,13 +56,13 @@ Ring i must sit at its target detune from fabrication PLUS whatever
 heat neighbors dump on it. Its own heater then contributes to every
 OTHER ring's crosstalk in turn. With linear heat conduction (rise
 proportional to input power) and the linear resonance-vs-temperature
-model already used throughout :mod:`siphon.wdm`
-(:func:`siphon.wdm.resonance_shift_nm_per_k`), the coupled system is
+model already used throughout :mod:`etalon.wdm`
+(:func:`etalon.wdm.resonance_shift_nm_per_k`), the coupled system is
 linear in the heater powers and :func:`solve_coupled_powers` solves it
 exactly (a single ``numpy.linalg.solve``), not by iterative relaxation.
 
 Conventions: positions in um, powers in mW, resonance shifts in nm,
-temperatures in K — consistent with :mod:`siphon.wdm`.
+temperatures in K — consistent with :mod:`etalon.wdm`.
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ class RingLayout:
     """1-D positions of N rings sharing a bus, in um, in ring order.
 
     Order matches the ring order used elsewhere for the same bank (e.g.
-    :func:`siphon.wdm.optimize_ring_assignment`'s ``offsets_nm``). Only
+    :func:`etalon.wdm.optimize_ring_assignment`'s ``offsets_nm``). Only
     relative spacing matters; positions need not start at zero.
     """
 
@@ -134,7 +134,7 @@ def coupling_matrix(layout: RingLayout, decay_um: float) -> np.ndarray:
     Off-diagonal only: ``K[i, j] = crosstalk_kernel(|x_i - x_j|, decay_um)``
     for ``i != j``; the diagonal is exactly zero (a ring's own heater
     power already sets its own temperature via the tuning efficiency in
-    :mod:`siphon.wdm` — the diagonal would double count it).
+    :mod:`etalon.wdm` — the diagonal would double count it).
     """
     k = crosstalk_kernel(layout.pitch_matrix_um(), decay_um)
     np.fill_diagonal(k, 0.0)
@@ -152,7 +152,7 @@ class CoupledTuningResult:
         at its target detune once neighbor heating is accounted for.
     naive_mw:
         Heater power per ring ignoring crosstalk entirely (what
-        :func:`siphon.wdm.tuning_power_mw` would report per ring).
+        :func:`etalon.wdm.tuning_power_mw` would report per ring).
     neighbor_shift_nm:
         Resonance shift each ring receives from ITS NEIGHBORS' heaters
         alone (excluding its own), at the coupled solution, in nm
@@ -201,7 +201,7 @@ def solve_coupled_powers(
 
     Each ring must reach ``target_detune_nm[i]`` (red-shift from its
     as-fabricated resonance, same sign convention as
-    :func:`siphon.wdm.tuning_power_mw` — pass only non-negative values;
+    :func:`etalon.wdm.tuning_power_mw` — pass only non-negative values;
     heaters cannot cool a ring, see that function's docstring for how to
     handle a physical blue-shift request). Ring i's total shift is its own
     heater's contribution plus the coupled fraction of every other ring's
@@ -229,7 +229,7 @@ def solve_coupled_powers(
     decay_um:
         Thermal healing length in um (> 0; see module docstring).
     tuning_efficiency_nm_per_mw:
-        Same convention as :mod:`siphon.wdm` (> 0).
+        Same convention as :mod:`etalon.wdm` (> 0).
     """
     if tuning_efficiency_nm_per_mw <= 0:
         raise ValueError("tuning_efficiency_nm_per_mw must be positive")
@@ -244,7 +244,7 @@ def solve_coupled_powers(
         raise ValueError(
             "target_detune_nm must be >= 0 (heaters only red-shift; wrap a physical "
             "blue-shift request to the long way around the FSR before calling, as "
-            "siphon.wdm.optimize_ring_assignment does)"
+            "etalon.wdm.optimize_ring_assignment does)"
         )
 
     k = coupling_matrix(layout, decay_um)
@@ -283,7 +283,7 @@ def worst_case_neighbor_shift_nm(
     Unlike :func:`solve_coupled_powers` (which solves for the powers that
     hit a target despite crosstalk), this is the cheap one-shot direction:
     given heater powers already chosen (e.g. from
-    :func:`siphon.wdm.optimize_ring_assignment`, which knows nothing about
+    :func:`etalon.wdm.optimize_ring_assignment`, which knows nothing about
     crosstalk), how much does that choice detune each ring's neighbors?
     ``shift[i] = eff * sum_j K[i, j] * heater_mw[j]``. Use this to check
     whether a crosstalk-blind assignment is good enough before reaching

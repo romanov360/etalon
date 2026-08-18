@@ -34,7 +34,7 @@ Whole-bank (jointly-coupled) yield
 -----------------------------------
 :func:`run_module` calls its metric once per lane, independently — fine
 when each lane's outcome only depends on that lane's own draws. A WDM ring
-bank breaks that assumption: :func:`siphon.thermal.solve_coupled_powers`
+bank breaks that assumption: :func:`etalon.thermal.solve_coupled_powers`
 solves a linear system across ALL rings on the bus at once, so ring i's
 achievable margin depends on every other ring's fabrication offset in the
 same trial. :func:`run_bank` and :class:`BankParam` give the metric the
@@ -465,7 +465,7 @@ class BankParam:
     but sampled as a full ring array per trial for :func:`run_bank` rather
     than per-lane for :func:`run_module` — the distinction matters because
     :func:`run_bank`'s metric sees the WHOLE bank at once (needed for
-    :func:`siphon.thermal.solve_coupled_powers`, which cannot be evaluated
+    :func:`etalon.thermal.solve_coupled_powers`, which cannot be evaluated
     ring-by-ring: one ring's required heater power depends on every other
     ring's draw in the same trial). No truncation support (unlike
     :class:`CommonDifferential`) — fold hard bounds into the metric if
@@ -501,7 +501,7 @@ class BankYieldResult:
 
     ``samples[i, j]`` is the metric of ring j in bank trial i. A whole ROW
     of NaN marks a trial where :func:`run_bank`'s metric raised ValueError
-    for the trial as a whole (e.g. :func:`siphon.thermal.solve_coupled_powers`
+    for the trial as a whole (e.g. :func:`etalon.thermal.solve_coupled_powers`
     finding the crosstalk-coupled lock unreachable) — the failure is
     bank-wide, not attributable to one ring, so every ring in that trial is
     recorded as failed. The gap between :meth:`ring_yield_above` and
@@ -613,7 +613,7 @@ def run_bank(
     ``(n_rings,)`` array of per-ring metric values (or raise ValueError to
     fail the whole trial). This whole-bank shape is required whenever the
     metric involves a joint solve across rings — the motivating case is
-    :func:`siphon.thermal.solve_coupled_powers`, where ring i's required
+    :func:`etalon.thermal.solve_coupled_powers`, where ring i's required
     heater power depends on every other ring's fabrication offset in the
     same trial, so the metric cannot be decomposed into independent
     per-ring calls the way :func:`run_module`'s can.

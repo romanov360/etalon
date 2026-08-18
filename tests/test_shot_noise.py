@@ -1,4 +1,4 @@
-"""Tests for shot-noise (and dark-current) penalty in siphon.link.
+"""Tests for shot-noise (and dark-current) penalty in etalon.link.
 
 Physics anchors: an independent bisection solve of the implicit top-eye
 requirement (not the module's closed form), limiting behavior (thermal
@@ -9,8 +9,8 @@ import math
 
 import pytest
 
-from siphon.constants import ELEMENTARY_CHARGE_C
-from siphon.link import (
+from etalon.constants import ELEMENTARY_CHARGE_C
+from etalon.link import (
     NOISE_BANDWIDTH_FRACTION,
     Photodiode,
     Signaling,
@@ -134,7 +134,7 @@ def test_presets_still_positive_margin_and_report_row(factory):
     # composition: thermal + RIN + shot + RINxshot interaction + explicit
     # penalties, all in dB (the interaction row books the exact joint solve;
     # see test_extension_review_regressions.py)
-    from siphon.link import receiver_sensitivity_oma_dbm
+    from etalon.link import receiver_sensitivity_oma_dbm
 
     expected = (
         receiver_sensitivity_oma_dbm(link.photodiode, link.tia, link.signaling)

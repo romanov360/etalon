@@ -1,4 +1,4 @@
-"""Tests for siphon.materials: Sellmeier fits, dispatch, and group index.
+"""Tests for etalon.materials: Sellmeier fits, dispatch, and group index.
 
 Reference values at 1.55 um: Si n=3.4764 (Li 1980), SiO2 n=1.4440
 (Malitson 1965), Si3N4 n=1.9963 (Luke 2015). Wavelengths in um.
@@ -7,7 +7,7 @@ Reference values at 1.55 um: Si n=3.4764 (Li 1980), SiO2 n=1.4440
 import numpy as np
 import pytest
 
-from siphon import materials
+from etalon import materials
 
 
 # --- refractive index values at 1.55 um -----------------------------------

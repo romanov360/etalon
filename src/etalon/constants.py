@@ -1,4 +1,4 @@
-"""Physical constants used throughout SiPhon (SI units unless noted)."""
+"""Physical constants used throughout Etalon (SI units unless noted)."""
 
 C_UM_PER_S = 2.99792458e14  # speed of light, um/s
 C_M_PER_S = 2.99792458e8  # speed of light, m/s

@@ -1,4 +1,4 @@
-"""Tests for module-level (max-of-N) yield in siphon.montecarlo.
+"""Tests for module-level (max-of-N) yield in etalon.montecarlo.
 
 Anchors are analytic: independent lanes give module_yield = lane_yield**N,
 pure common mode gives module_yield = lane_yield exactly, mixed draws have
@@ -11,7 +11,7 @@ import math
 import numpy as np
 import pytest
 
-from siphon import montecarlo as mc
+from etalon import montecarlo as mc
 
 
 def identity(x):

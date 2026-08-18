@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""SiPhon example 05 — parameter extraction from a wafer probe trace.
+"""Etalon example 05 — parameter extraction from a wafer probe trace.
 
 Pretends a probe station measured the through- and drop-port power spectra
 of an add-drop microring (synthesized here from known ground truth plus
 0.05 dB rms Gaussian noise, spanning ~3 FSRs), then calibrates a
-RingAddDrop model to the trace with siphon.extract.fit_ring_add_drop. The
+RingAddDrop model to the trace with etalon.extract.fit_ring_add_drop. The
 script prints a true-vs-recovered parameter table with the fit's residual
 rms against the injected noise floor, and saves an overlay plot (measured
 points, fitted curves, residuals) to examples/out/.
@@ -142,14 +142,14 @@ def maybe_plot(wl, thru_db, drop_db, fit_thru, fit_drop) -> None:
 
 def main() -> int:
     try:
-        from siphon.components import RingAddDrop
-        from siphon.extract import fit_ring_add_drop
+        from etalon.components import RingAddDrop
+        from etalon.extract import fit_ring_add_drop
     except ImportError as exc:
-        print("This example needs siphon.components and siphon.extract, which")
+        print("This example needs etalon.components and etalon.extract, which")
         print(f"are not built in this checkout yet ({exc}).")
         return 1
 
-    header("SiPhon 05 — model calibration against a (synthetic) probe trace")
+    header("Etalon 05 — model calibration against a (synthetic) probe trace")
     wl, thru_db, drop_db, fsr_um = synthesize_probe_trace(RingAddDrop)
     print(f"Device : add-drop ring, L = {CIRC_UM:.0f} um (fixed from layout), "
           f"FSR ~ {fsr_um * 1e3:.2f} nm")
@@ -186,7 +186,7 @@ def main() -> int:
     print()
     print(fit.report())
 
-    print("\nIdentifiability notes (see siphon.extract docstrings):")
+    print("\nIdentifiability notes (see etalon.extract docstrings):")
     print(f"  * neff0 is recovered modulo the resonance order "
           f"(wl0/L = {WL0_UM / CIRC_UM * 1e3:.2f} m-units per order);")
     print("    the layout circumference is held fixed because neff0*L is all")

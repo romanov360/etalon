@@ -1,22 +1,22 @@
 """Touchstone (.sNp) S-parameter file I/O — the measured-data on-ramp.
 
-:mod:`siphon.extract` fits SiPhon models to measured spectra, but until now
+:mod:`etalon.extract` fits Etalon models to measured spectra, but until now
 "measured" always meant a numpy array the caller built by hand (or by
 perturbing a synthetic spectrum). Real foundry PDKs, wafer-probe stations,
 and ATE all speak Touchstone (IEEE/IBIS Touchstone(R) File Format,
 versions 1.0 and 2.0): the format every VNA, S-parameter simulator, and PDK
 component model exports. This module reads that format into the exact
-shape :mod:`siphon.circuit` and :mod:`siphon.extract` already expect
+shape :mod:`etalon.circuit` and :mod:`etalon.extract` already expect
 (``ports`` + ``s_params(wl) -> (n_wl, n, n)`` complex, ``S[out, in]``
-convention — see :mod:`siphon.circuit`'s module docstring), so a measured
+convention — see :mod:`etalon.circuit`'s module docstring), so a measured
 .sNp file drops into ``fit_transmission`` or a ``Circuit`` instance exactly
-like any SiPhon component model. It also writes SiPhon model output back
+like any Etalon component model. It also writes Etalon model output back
 out as Touchstone, for round-tripping to other tools.
 
 Format notes (the parts that are easy to get silently wrong)
 --------------------------------------------------------------
 * **Frequency, not wavelength.** Touchstone files are frequency-domain;
-  this module converts to/from SiPhon's wavelength-in-um convention via
+  this module converts to/from Etalon's wavelength-in-um convention via
   ``wl_um = C_UM_HZ / f_hz`` (vacuum), so a file's frequency ordering
   (ascending or descending) becomes whatever wavelength ordering results
   — :func:`read_touchstone` does not re-sort; :class:`TouchstoneData`
@@ -24,10 +24,10 @@ Format notes (the parts that are easy to get silently wrong)
 * **DB format is FIELD dB (20*log10|S|), not power dB (10*log10).**
   S-parameters are complex field ratios, and Touchstone's "dB" column is
   ``20*log10(|S|)`` with a separate angle column in degrees — this is a
-  DIFFERENT convention from :func:`siphon.constants.db_to_linear`
+  DIFFERENT convention from :func:`etalon.constants.db_to_linear`
   (10*log10, power ratio); reusing that helper here would silently be
   wrong by a factor of 2 in the exponent. This module carries its own
-  field-dB conversion and never touches ``siphon.constants``'s power-dB
+  field-dB conversion and never touches ``etalon.constants``'s power-dB
   one.
 * **2-port column order is transposed relative to N>=3.** Per the
   Touchstone spec, a 2-port data line is
@@ -40,9 +40,9 @@ Format notes (the parts that are easy to get silently wrong)
   reshaping. For n == 1 and n >= 3 the file order is already row-major
   (``S11, S12, ..., S1n, S21, ...``) and a plain reshape is correct.
 * **Reference impedance** (the ``R <ohms>`` option-line token) is parsed
-  and reported but not used: SiPhon's S-parameters are already
+  and reported but not used: Etalon's S-parameters are already
   power-wave normalized (unitless), consistent with every model in
-  :mod:`siphon.components`, so no renormalization is applied. A file
+  :mod:`etalon.components`, so no renormalization is applied. A file
   written from a different reference impedance describes a physically
   different measurement setup; this module does not attempt
   renormalization — flag it via :attr:`TouchstoneData.reference_ohms` if
@@ -62,9 +62,9 @@ Format notes (the parts that are easy to get silently wrong)
 * **Inline trailing comments on data lines** (``<data> ! note``, legal
   per spec and common in real exports) are stripped before parsing.
 
-Conventions: wavelengths in um (SiPhon-wide); frequency in Hz internally;
+Conventions: wavelengths in um (Etalon-wide); frequency in Hz internally;
 S-parameters complex, ``S[out, in]``, unitless (matching
-:mod:`siphon.circuit`'s model protocol exactly, so a
+:mod:`etalon.circuit`'s model protocol exactly, so a
 :class:`TouchstoneData` instance IS a valid model: ``ports`` +
 ``s_params(wl)``).
 """
@@ -93,10 +93,10 @@ def _port_labels(n: int) -> tuple[str, ...]:
 class TouchstoneData:
     """Parsed (or in-memory) Touchstone S-parameter data.
 
-    Implements the SiPhon component-model protocol (``ports`` +
+    Implements the Etalon component-model protocol (``ports`` +
     ``s_params(wl)``), so it can be passed directly to
-    :func:`siphon.extract.fit_transmission`, wired into a
-    :class:`siphon.circuit.Circuit`, or read with
+    :func:`etalon.extract.fit_transmission`, wired into a
+    :class:`etalon.circuit.Circuit`, or read with
     :meth:`transmission`/:meth:`transmission_db`.
 
     Attributes
@@ -116,7 +116,7 @@ class TouchstoneData:
     parameter:
         Touchstone parameter type from the option line ('s', 'y', 'z',
         'g', or 'h'); this module only interprets 's' data numerically
-        (others are carried through unconverted, since SiPhon's Circuit
+        (others are carried through unconverted, since Etalon's Circuit
         protocol is S-parameter-only) — see :func:`read_touchstone`.
     """
 
@@ -192,9 +192,9 @@ class TouchstoneData:
         return self.s_params(wl_um)[:, i, j]
 
     def transmission_db(self, wl_um, inport: str, outport: str) -> np.ndarray:
-        """Power transmission in dB (10*log10|S|^2) — SiPhon's power-dB
+        """Power transmission in dB (10*log10|S|^2) — Etalon's power-dB
         convention, NOT the file's field-dB, for consistency with
-        :meth:`siphon.circuit.Circuit.transmission_db`."""
+        :meth:`etalon.circuit.Circuit.transmission_db`."""
         t = self.transmission(wl_um, inport, outport)
         floor = 1e-16
         return 10.0 * np.log10(np.maximum(np.abs(t) ** 2, floor))
@@ -394,7 +394,7 @@ def write_touchstone(
         via ``f_hz = C_UM_HZ / wl_um``; the file is written in the same
         order as given — sort first if a monotonic file is required).
     s : complex array, shape ``(len(wl_um), n, n)``, ``S[out, in]``
-        (matches :mod:`siphon.circuit`'s model protocol).
+        (matches :mod:`etalon.circuit`'s model protocol).
     ports : port names for a ``! Port[k] = name`` comment header; omit for
         no port-name comments (readers default to ``p1..pn``).
     fmt : ``"ri"`` (default, exact round-trip), ``"ma"``, or ``"db"``
@@ -419,7 +419,7 @@ def write_touchstone(
         raise ValueError(f"ports must have length {n}, got {len(ports)}")
 
     freq = (C_UM_HZ / wl) / _FREQ_UNIT_TO_HZ[freq_unit]
-    lines = [f"! Generated by siphon.touchstone.write_touchstone"]
+    lines = ["! Generated by etalon.touchstone.write_touchstone"]
     if ports is not None:
         for i, name in enumerate(ports, start=1):
             lines.append(f"! Port[{i}] = {name}")

@@ -1,7 +1,7 @@
-"""Parameter extraction: fit SiPhon models to measured transmission spectra.
+"""Parameter extraction: fit Etalon models to measured transmission spectra.
 
-Wraps :func:`scipy.optimize.least_squares` around any SiPhon S-parameter
-model or :class:`siphon.circuit.Circuit`, so measured wafer-probe spectra
+Wraps :func:`scipy.optimize.least_squares` around any Etalon S-parameter
+model or :class:`etalon.circuit.Circuit`, so measured wafer-probe spectra
 can calibrate model parameters (coupling, loss, effective/group index).
 
 How it works
@@ -246,7 +246,7 @@ def fit_transmission(
     ----------
     build : callable; ``build(**{**fixed, **params})`` must return either a
         component model (``ports`` + ``s_params(wl)``) or a
-        :class:`siphon.circuit.Circuit`.
+        :class:`etalon.circuit.Circuit`.
     params0 : initial guess for the FREE parameters, dict of floats. Key
         order sets the internal parameter vector order.
     wl_um : 1-D wavelength grid in um (>= 2 points).
@@ -371,7 +371,7 @@ def fit_ring_add_drop(
     bounds: dict[str, tuple[float, float]] | None = None,
     fixed: dict[str, float] | None = None,
 ) -> FitResult:
-    """Fit a :class:`siphon.components.RingAddDrop` to through+drop spectra.
+    """Fit a :class:`etalon.components.RingAddDrop` to through+drop spectra.
 
     Jointly fits (kappa1_power, kappa2_power, loss_db_per_cm, neff0, ng)
     to the measured in->through and in->drop power spectra in dB, via

@@ -1,4 +1,4 @@
-"""Tests for siphon.isi (filter ISI / eye-closure penalty).
+"""Tests for etalon.isi (filter ISI / eye-closure penalty).
 
 Physics anchors: a flat filter closes nothing, a pure delay is absorbed by
 the sampling-phase search, amplitude scale lands entirely in the insertion
@@ -11,9 +11,9 @@ import math
 import numpy as np
 import pytest
 
-from siphon import isi
-from siphon.components import RingAddDrop
-from siphon.isi import (
+from etalon import isi
+from etalon.components import RingAddDrop
+from etalon.isi import (
     C_UM_HZ,
     IsiResult,
     de_bruijn_sequence,
@@ -403,7 +403,7 @@ class TestReviewRegressions:
 
     def test_ring_plus_routing_straight_matches_ring_alone(self):
         # the reviewers' plausible-use case: demux ring behind ordinary routing
-        from siphon.components import Straight
+        from etalon.components import Straight
 
         wl = np.linspace(1.545, 1.555, 60_001)
         ring = RingAddDrop(
@@ -421,7 +421,7 @@ class TestReviewRegressions:
             assert p_both.penalty_db == pytest.approx(p_ring.penalty_db, abs=0.02)
 
     def test_coarse_grid_raises_instead_of_fabricating_penalty(self):
-        from siphon.components import Straight
+        from etalon.components import Straight
 
         route = Straight(length_um=670.0, neff0=2.4, ng=4.2)
         fine_wl = np.linspace(1.50, 1.60, 200_001)

@@ -1,6 +1,6 @@
-"""SiPhon 08 — ring-to-ring thermal crosstalk on a DWDM ring bank.
+"""Etalon 08 — ring-to-ring thermal crosstalk on a DWDM ring bank.
 
-siphon.wdm.optimize_ring_assignment picks the channel assignment that
+etalon.wdm.optimize_ring_assignment picks the channel assignment that
 minimizes total heater power, treating every ring as thermally isolated.
 This script asks the next question: once that assignment is heating
 several rings on the same bus, how much does each ring's heater detune
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from siphon import thermal, wdm
+from etalon import thermal, wdm
 
 N_RINGS = 8
 FSR_NM = 3.2  # a dense DWDM-scale FSR (contrast with example 02's CWDM case)
@@ -28,7 +28,7 @@ def header(title: str) -> None:
 
 
 def main() -> None:
-    header(f"SiPhon 08 — thermal crosstalk on an {N_RINGS}-ring DWDM bank")
+    header(f"Etalon 08 — thermal crosstalk on an {N_RINGS}-ring DWDM bank")
 
     rng = np.random.default_rng(2026)
     offsets_nm = rng.uniform(-FSR_NM / 2, FSR_NM / 2, N_RINGS)
@@ -52,7 +52,7 @@ def main() -> None:
 
     target_nm = np.abs(np.array(assignment.per_ring_mw)) * wdm.TUNING_EFFICIENCY_NM_PER_MW
     screen = thermal.worst_case_neighbor_shift_nm(assignment.per_ring_mw, layout, DECAY_UM)
-    print("\nScreening bound (siphon.wdm's assignment used AS-IS, crosstalk-blind):")
+    print("\nScreening bound (etalon.wdm's assignment used AS-IS, crosstalk-blind):")
     print(f"  {'ring':>4}  {'own target (nm)':>16}  {'neighbor shift (nm)':>20}  {'% of target':>11}")
     for i, (t, s) in enumerate(zip(target_nm, screen)):
         pct = f"{100 * s / t:6.1f}%" if t > 1e-9 else "    n/a"
@@ -62,7 +62,7 @@ def main() -> None:
           "own target shift —")
     print("large enough that a crosstalk-blind lock will not actually land on-channel.")
 
-    header("Self-consistent coupled solve (siphon.thermal.solve_coupled_powers)")
+    header("Self-consistent coupled solve (etalon.thermal.solve_coupled_powers)")
     try:
         coupled = thermal.solve_coupled_powers(target_nm, layout, DECAY_UM)
         print(coupled.report())

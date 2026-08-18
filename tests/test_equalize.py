@@ -1,4 +1,4 @@
-"""Tests for siphon.equalize (closed-form zero-forcing FFE taps).
+"""Tests for etalon.equalize (closed-form zero-forcing FFE taps).
 
 Anchors are analytic: a flat/dispersionless channel gives an exact delta
 pulse response and a trivial (identity) FFE; a single-postcursor-echo
@@ -13,7 +13,7 @@ import math
 import numpy as np
 import pytest
 
-from siphon import equalize
+from etalon import equalize
 
 C_UM_HZ = 2.99792458e14
 
@@ -216,7 +216,7 @@ class TestSolveFfeTaps:
         assert result.n_pre == 3 and result.n_post == 1
 
     def test_ring_component_end_to_end(self):
-        from siphon.components import RingAllPass
+        from etalon.components import RingAllPass
 
         ring = RingAllPass(
             circumference_um=200.0, neff0=2.4, ng=4.2, kappa_power=0.1,
@@ -258,7 +258,7 @@ class TestSolveFfeTaps:
         # padding scheme makes h_small silently diverge from
         # h_heavy_padded's first 3 taps well outside atol (confirmed by
         # deliberately hobbling the padding logic during development).
-        from siphon.components import RingAllPass
+        from etalon.components import RingAllPass
 
         ring = RingAllPass(
             circumference_um=200.0, neff0=2.4, ng=4.2, kappa_power=0.003,
@@ -284,7 +284,7 @@ class TestSolveFfeTaps:
         # tap span reaches materially more of a real (non-artifactual)
         # slow tail, a physical-behavior check, not a padding-correctness
         # check.
-        from siphon.components import RingAllPass
+        from etalon.components import RingAllPass
 
         ring = RingAllPass(
             circumference_um=200.0, neff0=2.4, ng=4.2, kappa_power=0.003,

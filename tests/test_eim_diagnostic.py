@@ -1,4 +1,4 @@
-"""Tests for the near-cutoff EIM accuracy diagnostic in siphon.waveguide.
+"""Tests for the near-cutoff EIM accuracy diagnostic in etalon.waveguide.
 
 The EIM is biased conservative near modal cutoff (it guides modes earlier
 than full-vectorial solvers: TE1 appears at ~316 nm strip width under EIM
@@ -16,8 +16,8 @@ import warnings
 
 import pytest
 
-from siphon import materials
-from siphon.waveguide import (
+from etalon import materials
+from etalon.waveguide import (
     NEAR_CUTOFF_NEFF_MARGIN,
     EimAccuracyWarning,
     Waveguide,

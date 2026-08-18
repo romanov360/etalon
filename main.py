@@ -1,5 +1,5 @@
 def main():
-    print("Hello from silicon-photonics!")
+    print("Hello from etalon!")
 
 
 if __name__ == "__main__":

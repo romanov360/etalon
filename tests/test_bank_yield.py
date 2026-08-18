@@ -1,4 +1,4 @@
-"""Tests for whole-bank (jointly-coupled) yield in siphon.montecarlo.
+"""Tests for whole-bank (jointly-coupled) yield in etalon.montecarlo.
 
 Anchors are analytic where possible: pure common mode gives every ring the
 same draw (bank yield == ring yield exactly), independent rings give bank
@@ -11,7 +11,7 @@ import math
 import numpy as np
 import pytest
 
-from siphon import montecarlo as mc
+from etalon import montecarlo as mc
 
 
 def identity(x):
@@ -156,7 +156,7 @@ def test_thermal_integration_end_to_end():
     """The motivating use case: correlated fab offsets -> ring-assignment
     optimizer -> thermal-coupled solve, all inside one metric call, with
     an unreachable-lock trial correctly failing the whole bank."""
-    from siphon import thermal, wdm
+    from etalon import thermal, wdm
 
     n_rings = 6
     fsr_nm = 3.2

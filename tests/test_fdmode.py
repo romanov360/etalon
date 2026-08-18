@@ -1,16 +1,16 @@
-"""Tests for siphon.fdmode: semi-vectorial finite-difference mode solver.
+"""Tests for etalon.fdmode: semi-vectorial finite-difference mode solver.
 
 Physics anchors, all independent of the solver's own output:
 
 - Wide-strip limit: a 6.0 x 0.22 um strip approaches the analytic
   three-layer slab TE0 index (2.848 at 1.55 um) from
-  :func:`siphon.waveguide.slab_neffs` (exact transcendental solve).
+  :func:`etalon.waveguide.slab_neffs` (exact transcendental solve).
 - Grid convergence: n_eff is O(h^2); halving the pitch must move it by
   well under the accuracy claim.
 - Bounds and ordering: every guided n_eff lies strictly between the
   cladding and core material indices, and mode order is by decreasing
   n_eff.
-- EIM cross-check ("the punchline"): the FD solver exists so SiPhon can
+- EIM cross-check ("the punchline"): the FD solver exists so Etalon can
   bound its own EIM bias in-library; for the standard 500 x 220 nm strip
   the two must agree to well under a percent but must NOT agree exactly.
 - Symmetry: the structure is mirror-symmetric in x, so TE0 is even and
@@ -26,9 +26,9 @@ import functools
 import numpy as np
 import pytest
 
-from siphon import materials
-from siphon.fdmode import FdMode, solve_modes
-from siphon.waveguide import Waveguide, slab_neffs
+from etalon import materials
+from etalon.fdmode import FdMode, solve_modes
+from etalon.waveguide import Waveguide, slab_neffs
 
 WL = 1.55
 N_SI = materials.n_si(WL)
@@ -109,7 +109,7 @@ def test_narrow_strip_single_te_mode():
 def test_fd_vs_eim_close_but_not_identical():
     """FD and EIM must agree loosely and disagree measurably for 500x220 TE0.
 
-    This is the reason fdmode exists: SiPhon quantifies its own EIM
+    This is the reason fdmode exists: Etalon quantifies its own EIM
     approximation instead of pointing users off-library. The EIM is known
     to overestimate n_eff for this geometry (it ignores the true 2D field
     at the corners and sidewalls); verified numerically here: FD gives

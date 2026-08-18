@@ -59,7 +59,7 @@ judges' surviving corrections:
 
 - **Product 0 (this repo).** An open-source photonic circuit + link toolkit — waveguide
   physics, S-matrix circuit solver, modulator/receiver/link-budget models, WDM/thermal-tuning
-  math, Monte Carlo corner analysis. This is `siphon/`. It is the credibility artifact the
+  math, Monte Carlo corner analysis. This is `etalon/`. It is the credibility artifact the
   top thesis prescribes ("that artifact alone opens doors to CPO architecture teams") and
   the distribution wedge the #2 thesis prescribes (open-core, community-standard). It is
   deliberately *not* the revenue product.
@@ -117,7 +117,7 @@ weakest. That is the truthful version of "as big as it gets" from a two-person s
 
 | When | Milestone |
 |---|---|
-| Week 0 | SiPhon core public: waveguide/circuit/link/WDM engine + Monte Carlo corners, CPO-vs-pluggable flagship example (this repo) |
+| Week 0 | Etalon core public: waveguide/circuit/link/WDM engine + Monte Carlo corners, CPO-vs-pluggable flagship example (this repo) |
 | Month 1–2 | Published reproductions of public CPO data (NVIDIA power claims, Meta laser stats, OIF ELSFP budgets); post where the 59 VC-backed photonics startups' designers live |
 | Month 2–4 | 3 paid pilot conversations from inbound; pick the design partner lane (CPO challenger vs. Taiwanese test house); OIF/OCP KGD working-group participation |
 | Month 4–9 | First $200K+ qualification-compression engagement with data-rights language; hire 2 (photonic test + E-O-E co-sim — target the VPIphotonics diaspora, a 6–12 month window) |

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""SiPhon example 01 — waveguide explorer.
+"""Etalon example 01 — waveguide explorer.
 
 Sweeps the width of a standard 220 nm SOI strip waveguide at 1550 nm and
 prints effective-index / group-index tables for the quasi-TE and quasi-TM
 fundamental modes, locates the single-mode boundary with the effective index
 method, and tabulates the bend-loss heuristic.
 
-Uses only the core modules (siphon.materials, siphon.waveguide), so it runs
+Uses only the core modules (etalon.materials, etalon.waveguide), so it runs
 on a bare checkout. Units: um for wavelength/geometry, dB for loss.
 """
 
@@ -16,8 +16,8 @@ from pathlib import Path
 
 import numpy as np
 
-from siphon import materials
-from siphon.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
+from etalon import materials
+from etalon.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
 
 WL_UM = 1.55
 HEIGHT_UM = 0.220  # standard SOI device layer
@@ -126,7 +126,7 @@ def maybe_plot(widths: np.ndarray, data: dict[str, list[float | None]]) -> None:
 
 
 def main() -> int:
-    header("SiPhon 01 — SOI strip waveguide explorer")
+    header("Etalon 01 — SOI strip waveguide explorer")
     print(f"Geometry : Si strip, height {HEIGHT_UM * 1e3:.0f} nm, SiO2 clad/box")
     print(f"Wavelength: {WL_UM} um (C-band)")
     print(f"Materials : n_Si = {materials.n_si(WL_UM):.4f}, "

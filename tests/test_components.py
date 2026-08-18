@@ -1,9 +1,9 @@
-"""Tests for siphon.components against analytic/known values."""
+"""Tests for etalon.components against analytic/known values."""
 
 import numpy as np
 import pytest
 
-from siphon.components import (
+from etalon.components import (
     MZI,
     DirectionalCoupler,
     GratingCoupler,
@@ -17,7 +17,7 @@ from siphon.components import (
     loaded_q,
     ring_fsr_um,
 )
-from siphon.waveguide import Waveguide
+from etalon.waveguide import Waveguide
 
 WL = np.linspace(1.50, 1.60, 401)
 NEFF0, NG, WL0 = 2.4, 4.2, 1.55

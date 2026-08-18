@@ -1,10 +1,10 @@
-"""Tests for siphon.wdm (channel plans, tuning power, crosstalk)."""
+"""Tests for etalon.wdm (channel plans, tuning power, crosstalk)."""
 
 import numpy as np
 import pytest
 
-from siphon import wdm
-from siphon.wdm import ChannelPlan
+from etalon import wdm
+from etalon.wdm import ChannelPlan
 
 
 C_UM_GHZ = 2.99792458e5

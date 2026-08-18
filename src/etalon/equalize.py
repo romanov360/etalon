@@ -1,12 +1,12 @@
 """Feed-forward equalizer (FFE) taps for a passive filter response.
 
-:mod:`siphon.isi` computes the eye-closure penalty of a CHIRP-FREE,
+:mod:`etalon.isi` computes the eye-closure penalty of a CHIRP-FREE,
 UNEQUALIZED receiver, and its own docstring names the gap explicitly:
 "no receiver equalization — with an FFE-based receiver treat the result
 as an upper bound on the residual ISI." Real 100G+/lane PAM4 links
 universally run receiver-side FFE, so that upper bound can be very loose.
 This module closes part of that gap: given the same passive S21(lambda)
-:func:`siphon.isi.filter_isi_penalty_db` takes, it solves the CLOSED-FORM
+:func:`etalon.isi.filter_isi_penalty_db` takes, it solves the CLOSED-FORM
 zero-forcing FFE tap vector and reports two numbers, never one alone —
 the residual ISI after equalization (small to zero, by construction, for
 taps that reach the whole channel memory) and the NOISE ENHANCEMENT
@@ -15,9 +15,9 @@ low-complexity PAM4 IMDD equalization literature, e.g. Opt. Lett. 45,
 2555 (2020)): a zero-forcing FFE amplifies receiver noise by the taps'
 own energy, sum(c_i^2) relative to an ideal unit-gain unequalized
 receiver. Book BOTH: the (near-zero) equalized ISI penalty into
-``LinkBudget.penalties_db`` in place of :func:`siphon.isi.filter_isi_penalty_db`'s
+``LinkBudget.penalties_db`` in place of :func:`etalon.isi.filter_isi_penalty_db`'s
 number, and the noise enhancement as an ADDITIONAL penalty on top of
-:func:`siphon.link.rin_penalty_db`/:func:`siphon.link.shot_penalty_db`
+:func:`etalon.link.rin_penalty_db`/:func:`etalon.link.shot_penalty_db`
 (both noise, not signal, so the enhancement multiplies their variance,
 not the signal level) — an FFE is never a free lunch, and reporting only
 the ISI side would silently claim one.
@@ -27,8 +27,8 @@ Method
 1. **Pulse response**: a single isolated symbol (one UI wide, unit
    amplitude, all other symbols at zero — NOT a full pattern) is
    propagated through the same baseband-mapped channel
-   :func:`siphon.isi.filter_isi_penalty_db` uses (shares its private
-   :func:`siphon.isi._baseband_response` interpolation, so the two
+   :func:`etalon.isi.filter_isi_penalty_db` uses (shares its private
+   :func:`etalon.isi._baseband_response` interpolation, so the two
    modules never diverge on how S21(lambda) is interpolated onto the
    simulation band), then square-root/field-domain filtered and
    SYMBOL-RATE SAMPLED (not oversampled — FFE taps operate at baud rate)
@@ -40,10 +40,10 @@ Method
    explicitly finds that symbol and raises ValueError if it falls
    outside what the requested ``n_pre``/``n_post`` can reach around it,
    rather than silently zero-forcing around near-zero energy (see
-   :mod:`siphon.isi`'s own bulk-delay handling in ``_aligned_eye`` for
+   :mod:`etalon.isi`'s own bulk-delay handling in ``_aligned_eye`` for
    the same concern in that module). This is a LINEAR (field-domain)
    response — a genuine simplification vs. the intensity response
-   :mod:`siphon.isi` computes, valid because the FFE itself acts on the
+   :mod:`etalon.isi` computes, valid because the FFE itself acts on the
    ELECTRICAL (post-photodiode, i.e. post-square-law) signal in a real
    receiver, and for the chirp-free, flat-loss-normalized model here the
    intensity pulse response is exactly ``|h[n]|^2`` convolved
@@ -84,12 +84,12 @@ is the noise-PESSIMISTIC, ISI-OPTIMISTIC end of the linear-equalizer
 family (it fully cancels ISI regardless of noise cost); a real receiver
 tuning taps against BER would use MMSE and land at a milder trade-off.
 Treat :attr:`FfeResult.noise_enhancement_db` as an upper bound on the
-noise cost, the mirror image of :mod:`siphon.isi`'s own "unequalized
+noise cost, the mirror image of :mod:`etalon.isi`'s own "unequalized
 penalty is an upper bound on residual ISI" statement. No decision
 feedback (DFE), no adaptive convergence/tracking, no quantization of
 tap coefficients or ADC effects, no timing-recovery jitter. Linear
 FIELD-domain pulse response only — the same passive-linear-filter scope
-:mod:`siphon.isi` declares (no driven ring modulators, no laser chirp).
+:mod:`etalon.isi` declares (no driven ring modulators, no laser chirp).
 A bulk group delay WITHIN reach of the requested ``n_pre``/``n_post`` is
 absorbed into the located cursor silently and correctly (a real
 receiver's clock recovery would do the same) — but this means
@@ -149,8 +149,8 @@ def pulse_response(
 
     A single unit-amplitude, one-UI-wide field pulse (all other time
     zero) is baseband-filtered by the interpolated ``s21(wl)`` (via
-    :func:`siphon.isi._baseband_response`, the same interpolation
-    :func:`siphon.isi.filter_isi_penalty_db` uses) and sampled at the
+    :func:`etalon.isi._baseband_response`, the same interpolation
+    :func:`etalon.isi.filter_isi_penalty_db` uses) and sampled at the
     symbol rate. The CURSOR is placed at the GLOBAL peak-magnitude
     sample over the whole simulated window (not merely the symbol the
     pulse was launched into): a pure bulk group delay, or a channel
@@ -168,7 +168,7 @@ def pulse_response(
 
     Parameters
     ----------
-    wl_um, s21 : same as :func:`siphon.isi.filter_isi_penalty_db` — 1-D
+    wl_um, s21 : same as :func:`etalon.isi.filter_isi_penalty_db` — 1-D
         wavelength grid (um) and complex field S21 on that grid,
         covering the simulation band around ``center_wl_um``.
     center_wl_um : carrier wavelength in um.

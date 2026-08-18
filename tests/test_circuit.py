@@ -1,13 +1,13 @@
-"""Tests for siphon.circuit against analytic S-matrix results.
+"""Tests for etalon.circuit against analytic S-matrix results.
 
-siphon.components does not exist yet, so minimal stub models implementing the
+etalon.components does not exist yet, so minimal stub models implementing the
 ports/s_params protocol are defined here.
 """
 
 import numpy as np
 import pytest
 
-from siphon.circuit import Circuit
+from etalon.circuit import Circuit
 
 WL = np.linspace(1.53, 1.565, 11)  # um
 

@@ -1,9 +1,9 @@
-"""Tests for siphon.thermal (ring-to-ring thermal crosstalk)."""
+"""Tests for etalon.thermal (ring-to-ring thermal crosstalk)."""
 
 import numpy as np
 import pytest
 
-from siphon import thermal, wdm
+from etalon import thermal, wdm
 
 
 class TestRingLayout:

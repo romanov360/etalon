@@ -1,4 +1,4 @@
-"""Tests for siphon.reliability: Arrhenius, FIT/MTTF algebra, lognormal
+"""Tests for etalon.reliability: Arrhenius, FIT/MTTF algebra, lognormal
 wear-out, competing-risks module survival, and WPE thermal derating.
 
 Anchors are analytic or independently re-derived (hand-computed Arrhenius
@@ -9,7 +9,7 @@ import math
 
 import pytest
 
-from siphon.reliability import (
+from etalon.reliability import (
     BOLTZMANN_EV_PER_K,
     arrhenius_acceleration,
     fit_from_mttf,
@@ -258,7 +258,7 @@ def test_wpe_rejects_bad_input():
 
 def test_wpe_output_feeds_link_laser():
     # The documented handoff: result is a valid Laser wpe.
-    from siphon.link import Laser
+    from etalon.link import Laser
 
     wpe = wpe_derated(0.15, 50.0, 75.0, 0.008)
     laser = Laser(power_dbm=10.0, wpe=wpe, rin_db_hz=-145.0)

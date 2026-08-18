@@ -122,7 +122,7 @@ class Waveguide:
     ----------
     width_um, height_um : core cross-section.
     slab_um : residual slab thickness for a rib; 0 for a fully etched strip.
-    core, cladding, box : material names understood by :mod:`siphon.materials`.
+    core, cladding, box : material names understood by :mod:`etalon.materials`.
         ``cladding`` is the top/side cladding, ``box`` the buried oxide.
     """
 

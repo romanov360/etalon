@@ -1,4 +1,4 @@
-"""Tests for siphon.waveguide: slab solver, EIM strip/rib guide, bend loss.
+"""Tests for etalon.waveguide: slab solver, EIM strip/rib guide, bend loss.
 
 Reference points: 220 nm Si/SiO2 slab TE0 n_eff = 2.849 at 1.55 um; a
 500x220 nm strip solved by EIM gives quasi-TE n_eff ~= 2.49 (full-vector
@@ -10,8 +10,8 @@ Wavelengths and geometry in um; loss in dB.
 import numpy as np
 import pytest
 
-from siphon import materials
-from siphon.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
+from etalon import materials
+from etalon.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
 
 WL = 1.55
 N_SI = materials.n_si(WL)

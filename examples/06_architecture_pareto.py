@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SiPhon example 06 — architecture Pareto sweep: link margin vs pJ/bit.
+"""Etalon example 06 — architecture Pareto sweep: link margin vs pJ/bit.
 
 Sweeps a CPO-style link (microring, remote laser — the preset_cpo_optical_io
 component stack) over modulation order, symbol rate, lane count, and laser
@@ -80,9 +80,9 @@ def maybe_plot(points: list[tuple], front: list[tuple]) -> None:
 
 def main() -> int:
     try:
-        from siphon.link import Signaling, energy_per_bit_pj, preset_cpo_optical_io
+        from etalon.link import Signaling, energy_per_bit_pj, preset_cpo_optical_io
     except ImportError as exc:
-        print(f"This example needs siphon.link ({exc}); re-run after integration.")
+        print(f"This example needs etalon.link ({exc}); re-run after integration.")
         return 1
 
     base = preset_cpo_optical_io()
@@ -104,7 +104,7 @@ def main() -> int:
                     points.append((label, link.margin_db, epb["total"], lv))
 
     front = set(id(p) for p in pareto(points))
-    print("SiPhon 06 — architecture Pareto sweep (CPO-style component stack)")
+    print("Etalon 06 — architecture Pareto sweep (CPO-style component stack)")
     print(f"{len(points)} configs; margin includes shot-noise + RIN penalties.\n")
     hdr = f"{'config':<36} {'margin (dB)':>12} {'pJ/bit':>8}  Pareto"
     print(hdr)

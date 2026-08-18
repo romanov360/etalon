@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use SiPhon in your research or engineering work, please cite it as below."
-title: "SiPhon: an open-source silicon photonics design toolkit"
+message: "If you use Etalon in your research or engineering work, please cite it as below."
+title: "Etalon: an open-source silicon photonics design toolkit"
 type: software
 authors:
   - family-names: Romanov
@@ -18,7 +18,7 @@ keywords:
   - S-parameter circuit simulation
   - Monte Carlo yield analysis
 abstract: >-
-  SiPhon provides material dispersion models, waveguide mode solvers
+  Etalon provides material dispersion models, waveguide mode solvers
   (slab and effective-index method), S-parameter component models,
   netlist-level photonic circuit simulation, WDM system helpers,
   closed-form optical link budgets for AI-datacenter interconnects

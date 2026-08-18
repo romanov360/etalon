@@ -3,7 +3,7 @@
 The E-O-E bridge between the frequency-domain circuit solver and the link
 budget: take a composed complex field response S21(lambda) — a demux
 passband, grating-coupler ripple, a filter cascade from
-:class:`siphon.circuit.Circuit` — and compute the worst-case PAM eye
+:class:`etalon.circuit.Circuit` — and compute the worst-case PAM eye
 closure it inflicts on an intensity-modulated signal, as a dB penalty
 ready for ``LinkBudget.penalties_db``:
 
@@ -91,7 +91,7 @@ MAX_PATTERN_SYMBOLS = 65536
 
 
 def _check_levels(levels: int) -> None:
-    """Same convention as siphon.link: PAM order is a power of two >= 2."""
+    """Same convention as etalon.link: PAM order is a power of two >= 2."""
     if levels < 2 or 2 ** int(round(math.log2(levels))) != levels:
         raise ValueError("levels must be a power of two >= 2 (2=NRZ, 4=PAM4, ...)")
 

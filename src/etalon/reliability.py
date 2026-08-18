@@ -14,7 +14,7 @@ quotable reliability facts into reproducible closed-form arithmetic:
 * Competing-risks composition of the two regimes and an all-lasers-alive
   module survival probability.
 * First-order linear wall-plug-efficiency derating with temperature, to
-  feed :class:`siphon.link.Laser`.
+  feed :class:`etalon.link.Laser`.
 
 Conventions
 -----------
@@ -234,7 +234,7 @@ def wpe_derated(wpe_ref: float, t_ref_c: float, t_c: float, slope_per_k: float) 
     model derates the efficiency to <= 0 — that is outside the model's
     validity range, not a prediction.
 
-    Feed the result into :class:`siphon.link.Laser` as
+    Feed the result into :class:`etalon.link.Laser` as
     ``Laser(wpe=wpe_derated(...), ...)``. This module deliberately does NOT
     solve the electro-thermal self-heating loop (wpe depends on T_junction,
     which depends on dissipation, which depends on wpe): the junction /

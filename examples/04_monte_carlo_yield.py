@@ -1,4 +1,4 @@
-"""SiPhon 04 — Monte Carlo yield of a CPO optical-I/O link.
+"""Etalon 04 — Monte Carlo yield of a CPO optical-I/O link.
 
 A deterministic link budget answers "does the nominal link close?"; the
 question a CPO program actually lives or dies on is "what fraction of
@@ -9,7 +9,7 @@ parametric yield and the parameters that dominate the margin spread.
 
 from dataclasses import replace
 
-from siphon import link, montecarlo as mc
+from etalon import link, montecarlo as mc
 
 
 def build_link(p: dict[str, float]) -> link.LinkBudget:
@@ -55,7 +55,7 @@ PARAMS = [
 
 def main() -> None:
     print("=" * 72)
-    print("SiPhon 04 — Monte Carlo yield, CPO optical-I/O lane (32G NRZ, rings)")
+    print("Etalon 04 — Monte Carlo yield, CPO optical-I/O lane (32G NRZ, rings)")
     print("=" * 72)
 
     nominal = link.preset_cpo_optical_io()

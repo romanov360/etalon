@@ -10,8 +10,8 @@ import math
 import numpy as np
 import pytest
 
-from siphon import components, link, materials, montecarlo as mc, waveguide, wdm
-from siphon.circuit import Circuit
+from etalon import components, link, materials, montecarlo as mc, waveguide, wdm
+from etalon.circuit import Circuit
 
 
 # --- finding: ring phase conjugation broke composition ---------------------
