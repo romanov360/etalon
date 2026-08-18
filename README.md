@@ -121,60 +121,19 @@ examples/            eleven runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
+CHANGELOG.md         every module's adversarial-review record: what was
+                      checked, what was found, what got fixed
 ```
 
-The codebase survived a 47-agent adversarial review (5 lenses, every finding
-attacked by a 3-refuter panel): 8 distinct confirmed defects — including a ring
-phase-convention conjugation, an extinction-ratio double-count, and a
-laser-sharing energy-conservation bug — were fixed and pinned with regression
-tests (`tests/test_review_regressions.py`); transcripts in
-`docs/research/raw/workflow-adversarial-review/`. A second, independent
-validation pass (2026-07-24) confirmed the core algebra and surfaced four more
-findings — notably RIN noise evaluated at OMA instead of the true top level
-(~0.56 dB hidden optimism at low ER) and a batched rewrite of the circuit
-solve — all rolled in and pinned (`tests/test_validation_regressions.py`,
-notes in `docs/research/validation-notes-2026-07-24.md`). The roadmap
-extensions that followed (extraction, module yield, ring assignment,
-reliability, FD solver, shot noise) went through their own 7-reviewer
-adversarial pass: 14 findings, all resolved — including an exact joint
-RIN+shot noise solve replacing the optimistic independent-dB composition
-(`tests/test_extension_review_regressions.py`). The E-O-E bridge
-(`etalon.isi`, 2026-07-25) and ring-to-ring thermal crosstalk
-(`etalon.thermal`, 2026-08-17) each went through an independent
-adversarial re-derivation of their core algebra from physical first
-principles; thermal crosstalk's review found no defects but tightened
-the exponential-kernel near-field honesty caveat and added edge-case
-regression tests (n=1, coincident rings, realistic 8-ring bank scale).
-The Touchstone file reader (`etalon.touchstone`, 2026-08-17) went
-through an adversarial review that hand-verified the notoriously
-error-prone 2-port column order (S11/S21/S12/S22, not row-major) by
-inspecting raw written bytes; it found two real parsing gaps — a
-disagreeing duplicate option line silently misconverting prior rows,
-and rejection of legal inline data-line comments — both fixed and
-pinned, plus added coverage for descending-frequency files and
-`Circuit.connect()`-cascaded measured components. The whole-bank Monte
-Carlo (`etalon.montecarlo.run_bank`/`BankParam`, 2026-08-17) had its
-common+differential sampling statistics, all-NaN-row failure semantics,
-and yield-statistic NaN-handling independently re-verified by large-sample
-simulation; the review found a validation gap (`BankParam`'s name field
-wasn't key-matched like `Normal`/`Uniform`'s) and an overstated claim in
-the accompanying example's narrative (sigma_common's effect on bank yield
-is real, just ~15x smaller than sigma_diff's) — both fixed. The
-zero-forcing FFE equalizer (`etalon.equalize`, 2026-08-17) went through
-two adversarial rounds: the first found two real silent-garbage bugs — a
-bulk group delay or a dominant postcursor tap could lock the cursor onto
-near-zero energy and report a plausible-looking but meaningless result
-(e.g. +63 dB noise enhancement, no error), and a fixed zero-padding
-guard gave an artificially optimistic residual-ISI reading on a
-high-Q-ring stress case. Both fixed (cursor now globally peak-seeks and
-raises if the peak falls outside the requested tap span; padding now
-adaptively doubles until the response provably decays, raising rather
-than guessing if it can't). A follow-up round hand-verified both fixes
-under harder adversarial pressure (fractional delays, near-tied peaks,
-a forced cap-trip) and found the fixes hold, plus one narrow residual
-edge (near-tied multipath peaks can flip cursor choice discontinuously
-— documented, not hit by realistic single-ring channels) and a test
-that didn't actually exercise the padding fix — both addressed.
+Every module here has gone through at least one independent adversarial
+review before being considered done — a fresh reviewer re-derives the
+physics from first principles and tries to break the implementation, not
+just reads it and nods along. Across seven review rounds since the initial
+47-agent pass, this has caught real bugs: a ring phase-convention error, an
+RIN-noise level miscalculation, a bulk-group-delay eye-search bug, a
+Touchstone option-line/comment parsing gap, and a silent-garbage FFE
+cursor-lock failure, among others — all fixed and pinned as regression
+tests. See [CHANGELOG.md](CHANGELOG.md) for the detailed record of each pass.
 
 ## License & citation
 
