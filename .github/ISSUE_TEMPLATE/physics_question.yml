@@ -1,0 +1,25 @@
+name: Physics question / model accuracy
+description: You think a model is right but computed the wrong way, missing a term, or scoped incorrectly — not a code crash.
+labels: ["physics"]
+body:
+  - type: textarea
+    id: model
+    attributes:
+      label: Which model, and what's the concern
+      description: Module/function name, and what you think is missing, wrong, or over-simplified.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference (if you have one)
+      description: A paper, textbook derivation, or measured data point that supports your concern.
+    validations:
+      required: false
+  - type: textarea
+    id: numeric
+    attributes:
+      label: Numeric check (if you've done one)
+      description: If you've hand-computed or independently verified what the right answer should be, show it — this is the fastest path to a fix.
+    validations:
+      required: false

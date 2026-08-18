@@ -137,6 +137,13 @@ Touchstone option-line/comment parsing gap, and a silent-garbage FFE
 cursor-lock failure, among others — all fixed and pinned as regression
 tests. See [CHANGELOG.md](CHANGELOG.md) for the detailed record of each pass.
 
+## Contributing
+
+Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+code style, and what "done" means in this repo (short version: every new
+physical model needs an analytic-anchor test and a stated scope/honesty-limits
+docstring section).
+
 ## License & citation
 
 Apache-2.0 (see [LICENSE](LICENSE)). To cite Etalon, use [CITATION.cff](CITATION.cff).
