@@ -1,5 +1,7 @@
 # Etalon
 
+[![tests](https://github.com/romanov360/etalon/actions/workflows/tests.yml/badge.svg)](https://github.com/romanov360/etalon/actions/workflows/tests.yml)
+
 **An open-source silicon photonics design toolkit for photonic integrated circuits
 (PICs)** — material dispersion models, waveguide mode solvers, S-parameter photonic
 circuit simulation, WDM system math, closed-form optical link budgets for AI-datacenter
