@@ -1,0 +1,3 @@
+# etalon.components
+
+::: etalon.components

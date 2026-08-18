@@ -126,7 +126,13 @@ docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources
 CHANGELOG.md         every module's adversarial-review record: what was
                       checked, what was found, what got fixed
+mkdocs-src/          API reference site source (mkdocs + mkdocstrings,
+                      generated from the module docstrings below)
 ```
+
+The API reference builds locally with `uv run mkdocs serve` (live-reloading
+dev server) or `uv run mkdocs build` (static site in `site/`). Not yet
+deployed to a public URL.
 
 Every module here has gone through at least one independent adversarial
 review before being considered done — a fresh reviewer re-derives the

@@ -1,0 +1,67 @@
+site_name: Etalon
+site_description: An open-source silicon photonics design toolkit for photonic integrated circuits (PICs).
+site_url: https://romanov360.github.io/etalon/
+repo_url: https://github.com/romanov360/etalon
+repo_name: romanov360/etalon
+docs_dir: mkdocs-src
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            merge_init_into_class: true
+            show_signature_annotations: true
+            separate_signature: true
+
+nav:
+  - Home: index.md
+  - Modules:
+      - materials: modules/materials.md
+      - waveguide: modules/waveguide.md
+      - fdmode: modules/fdmode.md
+      - components: modules/components.md
+      - circuit: modules/circuit.md
+      - link: modules/link.md
+      - wdm: modules/wdm.md
+      - thermal: modules/thermal.md
+      - montecarlo: modules/montecarlo.md
+      - isi: modules/isi.md
+      - equalize: modules/equalize.md
+      - extract: modules/extract.md
+      - touchstone: modules/touchstone.md
+      - reliability: modules/reliability.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - tables
+  - toc:
+      permalink: true

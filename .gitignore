@@ -14,6 +14,9 @@ wheels/
 coverage.xml
 htmlcov/
 
+# mkdocs build output
+site/
+
 # Generated example outputs (examples/out/.gitkeep is tracked)
 examples/out/*.png
 examples/out/*.s2p

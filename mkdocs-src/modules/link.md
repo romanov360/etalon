@@ -1,0 +1,3 @@
+# etalon.link
+
+::: etalon.link

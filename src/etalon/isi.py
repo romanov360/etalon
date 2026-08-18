@@ -404,12 +404,12 @@ def filter_isi_penalty_db(
         (capped at 65536). Increase until the penalty stops moving (a ring
         with photon lifetime ~ n UI needs memory_symbols > n).
 
-    Intended flow::
-
-        t = circuit.transmission(wl, 'in', 'drop')
-        r = filter_isi_penalty_db(wl, t, center_wl_um=1.311, rate_gbd=32.0,
-                                  levels=2)
-        budget.penalties_db['demux_isi'] = r.penalty_db
+    Examples
+    --------
+    >>> t = circuit.transmission(wl, 'in', 'drop')  # doctest: +SKIP
+    >>> r = filter_isi_penalty_db(wl, t, center_wl_um=1.311, rate_gbd=32.0,
+    ...                           levels=2)  # doctest: +SKIP
+    >>> budget.penalties_db['demux_isi'] = r.penalty_db  # doctest: +SKIP
     """
     wl = np.asarray(wl_um, dtype=float)
     t21 = np.asarray(s21, dtype=complex)

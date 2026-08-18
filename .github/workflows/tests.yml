@@ -41,3 +41,6 @@ jobs:
             echo "=== $f ==="
             uv run python "$f"
           done
+
+      - name: Build docs site
+        run: uv run mkdocs build --strict
