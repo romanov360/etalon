@@ -180,10 +180,10 @@ class CommonDifferential:
             return np.broadcast_to(common[:, None], shape).copy()
         common = rng.normal(0.0, self.sigma_common, n_modules)
         center = np.broadcast_to(self.mean + common[:, None], shape)
-        a = (lo - center) / self.sigma_diff
-        b = (hi - center) / self.sigma_diff
+        a_arr = (lo - center) / self.sigma_diff
+        b_arr = (hi - center) / self.sigma_diff
         return stats.truncnorm.rvs(
-            a, b, loc=center, scale=self.sigma_diff, size=shape, random_state=rng
+            a_arr, b_arr, loc=center, scale=self.sigma_diff, size=shape, random_state=rng
         )
 
 

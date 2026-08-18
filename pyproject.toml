@@ -47,8 +47,13 @@ Repository = "https://github.com/romanov360/etalon"
 
 [dependency-groups]
 dev = [
+    "mkdocs>=1.6.1",
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings[python]>=1.0.6",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "scipy-stubs>=1.18.0.1",
 ]
 
 [build-system]
@@ -60,3 +65,17 @@ packages = ["src/etalon"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+
+[tool.coverage.run]
+source = ["etalon"]
+branch = true
+
+[tool.coverage.report]
+precision = 1
+skip_covered = false

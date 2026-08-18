@@ -32,7 +32,7 @@ at wavelength ``wl[k]`` (um). Row/column order equals ``ports`` order.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, overload
 
 import numpy as np
 
@@ -49,8 +49,17 @@ def _wl_array(wavelength_um) -> np.ndarray:
     return wl
 
 
-def _amp_from_db(loss_db: float) -> float:
-    """Field amplitude factor for a power loss in dB (>= 0 means loss)."""
+@overload
+def _amp_from_db(loss_db: float) -> float: ...
+@overload
+def _amp_from_db(loss_db: np.ndarray) -> np.ndarray: ...
+def _amp_from_db(loss_db: float | np.ndarray) -> float | np.ndarray:
+    """Field amplitude factor for a power loss in dB (>= 0 means loss).
+
+    Elementwise-safe: accepts and returns either a scalar or an array
+    (some call sites pass a per-wavelength loss array, e.g.
+    :meth:`GratingCoupler.s_params`).
+    """
     return 10.0 ** (-loss_db / 20.0)
 
 

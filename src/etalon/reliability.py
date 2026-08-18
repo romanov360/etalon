@@ -212,6 +212,7 @@ def module_survival(
         raise ValueError("t50_hours and sigma must be given together (or both None)")
     s_laser = survival_probability(t_hours, fit_per_laser)
     if t50_hours is not None:
+        assert sigma is not None  # enforced by the XOR check above
         s_laser *= 1.0 - wearout_fraction(t_hours, t50_hours, sigma)
     return s_laser**n_lasers
 

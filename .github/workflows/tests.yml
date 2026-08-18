@@ -23,8 +23,17 @@ jobs:
       - name: Sync dependencies
         run: uv sync
 
-      - name: Run tests
-        run: uv run pytest -v
+      - name: Type check
+        run: uv run mypy src/etalon
+
+      - name: Run tests with coverage
+        run: uv run pytest -v --cov=etalon --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
       - name: Run examples (smoke test)
         run: |

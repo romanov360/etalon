@@ -230,7 +230,7 @@ def _best_eye(
     phase index — deterministic.
     """
     samples = intensity.reshape(-1, sps)  # (n_symbols, sps)
-    best = (-np.inf, 0, 0, None)
+    best: tuple[float, int, int, np.ndarray | None] = (-np.inf, 0, 0, None)
     order = [0]
     for q in range(1, max_symbol_offset + 1):
         order.extend((q, -q))
@@ -239,8 +239,12 @@ def _best_eye(
         phase = int(np.argmax(worst))
         if worst[phase] > best[0]:
             best = (float(worst[phase]), q, phase, openings[:, phase].copy())
-    worst_val, q, phase, openings = best
-    return q, phase, openings, worst_val
+    worst_val, q, phase, best_openings = best
+    # order always contains at least q=0, and worst[phase] > -inf holds on
+    # any real float, so best is replaced at least once — best_openings is
+    # never actually None here, just untraceable to mypy through the loop.
+    assert best_openings is not None
+    return q, phase, best_openings, worst_val
 
 
 def _aligned_eye(

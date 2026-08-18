@@ -232,7 +232,7 @@ def fit_transmission(
     outport: str | None = None,
     bounds: dict[str, tuple[float, float]] | None = None,
     domain: str = "power_db",
-    **fixed,
+    **fixed: float,
 ) -> FitResult:
     """Fit a model's free parameters to measured transmission spectra.
 
@@ -505,6 +505,11 @@ def fit_ring_add_drop(
                 best_neff0, best_sse = neff0, sse
         params0["neff0"] = best_neff0
 
+    # build_kwargs's keys are circumference_um/wl0_um plus `held`, which is
+    # validated above (unknown check) to be a subset of _RING_FREE — never
+    # "bounds"/"domain"/"inport"/"outport" — so this can't actually collide
+    # with fit_transmission's named parameters; mypy can't see across that
+    # runtime validation.
     return fit_transmission(
         build,
         params0,
@@ -512,5 +517,5 @@ def fit_ring_add_drop(
         measured,
         bounds=eff_bounds,
         domain="power_db",
-        **build_kwargs,
+        **build_kwargs,  # type: ignore[arg-type]
     )

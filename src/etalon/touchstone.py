@@ -329,9 +329,9 @@ def read_touchstone(path) -> TouchstoneData:
                 ) from exc
 
     values_per_freq = 1 + 2 * n_ports * n_ports
-    flat = " ".join(data_lines).split()
+    tokens = " ".join(data_lines).split()
     try:
-        flat = np.array([float(v) for v in flat], dtype=float)
+        flat = np.array([float(v) for v in tokens], dtype=float)
     except ValueError as exc:
         raise ValueError(f"{p}: non-numeric token in data section") from exc
     if flat.size == 0 or flat.size % values_per_freq != 0:

@@ -23,6 +23,8 @@ Conventions: wavelengths in um; ``transmission_db`` returns power dB.
 
 from __future__ import annotations
 
+from typing import Protocol, runtime_checkable
+
 import numpy as np
 
 # Condition number of (I - S_ii P) above which the internal solve is treated
@@ -30,6 +32,24 @@ import numpy as np
 _COND_LIMIT = 1e12
 
 Port = tuple[str, str]  # (instance name, port name)
+
+
+@runtime_checkable
+class SParamModel(Protocol):
+    """The duck-typed model protocol this module's docstring describes.
+
+    Anything with these two attributes works as a :meth:`Circuit.add`
+    instance — :mod:`etalon.components` models, :class:`etalon.touchstone.
+    TouchstoneData`, or a user's own class. No shared base class is
+    required or assumed; this Protocol exists for static typing and
+    documentation, not runtime dispatch (``add`` still checks via
+    ``getattr``/``hasattr``, since a Protocol match doesn't guarantee
+    ``s_params`` returns the right shape).
+    """
+
+    ports: tuple[str, ...]
+
+    def s_params(self, wl: np.ndarray) -> np.ndarray: ...
 
 
 class Circuit:
@@ -41,14 +61,14 @@ class Circuit:
     """
 
     def __init__(self) -> None:
-        self._instances: dict[str, object] = {}
+        self._instances: dict[str, SParamModel] = {}
         self._connections: list[tuple[Port, Port]] = []
         self._exposed: dict[str, Port] = {}
         self._used_ports: set[Port] = set()
 
     # --- construction ------------------------------------------------------
 
-    def add(self, name: str, model) -> None:
+    def add(self, name: str, model: SParamModel) -> None:
         """Register a model instance under a unique name."""
         if name in self._instances:
             raise ValueError(f"instance {name!r} already added")

@@ -17,6 +17,10 @@ No API keys, no external services, no network access needed to build or test.
 
 - **Run the full test suite.** `uv run pytest -v`. CI runs it too, but don't
   rely on CI to find things a local run would have caught faster.
+- **Check coverage for new code.** `uv run pytest --cov=etalon --cov-report=term-missing`
+  shows uncovered lines per file. New physics should be covered by an
+  analytic-anchor test, not just a "doesn't crash" smoke test — see the
+  point above.
 - **Run the examples that touch your change.** `uv run python examples/NN_*.py`
   — the test suite covers unit-level correctness; the examples are the
   integration smoke test and have caught real bugs unit tests missed (see
