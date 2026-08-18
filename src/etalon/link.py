@@ -14,7 +14,8 @@ Conventions
   current noise sets the sensitivity floor. Shot noise (including dark
   current) is modeled on top as a self-consistent dB penalty evaluated at
   the top eye level (see :func:`shot_penalty_db`); ISI is neglected.
-  RIN, shot noise, finite extinction ratio, and crosstalk are layered on
+  RIN, shot noise, finite extinction ratio, crosstalk, and
+  polarization-dependent loss (see :func:`pdl_penalty_db`) are layered on
   as separate dB penalties, following standard budgeting practice
   (Agrawal, *Fiber-Optic Communication Systems*, 4th ed., ch. 4; IEEE
   802.3 link-budget spreadsheets). Because RIN and shot noise are both
@@ -362,6 +363,67 @@ def crosstalk_penalty_db(agg_crosstalk_db: float) -> float:
     if agg_crosstalk_db >= 0.0:
         raise ValueError("aggregate crosstalk must be < 0 dB")
     return -10.0 * math.log10(1.0 - db_to_linear(agg_crosstalk_db))
+
+
+def pdl_penalty_db(pdl_db: float) -> float:
+    """Worst-case power penalty from polarization-dependent loss (PDL), dB.
+
+    PDL is defined as 10*log10(P_max/P_min), the dB spread in a
+    component's transmission across all input polarization states
+    (IEC 61300-3-2). Unlike ordinary insertion loss, PDL is NOT a fixed
+    loss you can fold into a :class:`LossElement`: a fiber-coupled
+    silicon-photonic link (no polarization-maintaining fiber, no active
+    polarization control) sees an input state of polarization that
+    drifts with temperature, stress, and time, so the link must close at
+    whichever state the fiber happens to deliver — including the worst
+    one. penalty_db = pdl_db exactly (P_min is pdl_db below P_max by
+    definition) IF the nominal path loss you already booked in
+    ``LossElement`` represents the BEST-polarization-state (peak) loss —
+    the convention this toolkit's own presets use, and the common one for
+    component datasheets. Some vendors instead spec insertion loss as the
+    AVERAGE of the best and worst polarization states; under that
+    convention the correct additional penalty from nominal to worst-case
+    is ``pdl_db / 2``, not the full value — check which convention your
+    number came from before booking it. Book the penalty in
+    ``LinkBudget.penalties_db``, not the path — it is a polarization-state
+    penalty, not a deterministic loss.
+
+    A component with negligible polarization sensitivity (a well-designed
+    directional coupler, MZI, or straight waveguide) has PDL ~ 0 dB and
+    contributes nothing; polarization-sensitive components (grating
+    couplers foremost — see :func:`aggregate_pdl_db` for combining
+    several) can carry 0.5-2+ dB depending on design.
+    """
+    if pdl_db < 0.0:
+        raise ValueError("pdl_db must be >= 0 dB")
+    return pdl_db
+
+
+def aggregate_pdl_db(component_pdl_db) -> float:
+    """Worst-case system PDL (dB) from cascaded components' individual PDL.
+
+    The exact combined PDL of cascaded components depends on the relative
+    orientation of each component's polarization axes — generally smaller
+    than simple addition, but that orientation is not known at a
+    budgeting level (it depends on fiber routing, chip layout, and
+    fabrication, not a design choice this toolkit can see). Linear dB
+    summation, ``sum(component_pdl_db)``, is the standard conservative
+    worst-case bound used in system link budgets (every component's
+    worst polarization state aligning simultaneously) — architecture-level
+    margin, not a Mueller-matrix combination. Feed the result to
+    :func:`pdl_penalty_db`.
+
+    Parameters
+    ----------
+    component_pdl_db : array-like of individual component PDL values, dB
+        (each >= 0).
+    """
+    values = [float(v) for v in component_pdl_db]
+    if not values:
+        raise ValueError("component_pdl_db must contain at least one value")
+    if any(v < 0.0 for v in values):
+        raise ValueError("component PDL values must be >= 0 dB")
+    return sum(values)
 
 
 # --- link budget ------------------------------------------------------------

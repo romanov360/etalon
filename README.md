@@ -48,7 +48,7 @@ pip install etalon   # once published to PyPI
 | `etalon.fdmode` | Semi-vectorial finite-difference mode solver on the cross-section — the in-repo check on the EIM's own approximation |
 | `etalon.components` | S-parameter models: straight, directional coupler, Y-branch, phase shifters, grating coupler, all-pass & add-drop rings (Bogaerts 2012), analytic MZI |
 | `etalon.circuit` | Netlist-level S-matrix circuit solver (subnetwork reduction with proper feedback handling — rings built from couplers work) |
-| `etalon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
+| `etalon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk/PDL penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
 | `etalon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
 | `etalon.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
 | `etalon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking, and whole-bank (jointly-coupled) yield for metrics — like thermal-crosstalk-coupled ring tuning — that can't be decomposed lane-by-lane |
@@ -85,6 +85,7 @@ uv run python examples/08_thermal_crosstalk.py     # ring-bank thermal crosstalk
 uv run python examples/09_touchstone_roundtrip.py  # write/read a .s2p file, fit a model to it
 uv run python examples/10_wdm_bank_yield.py        # whole-bank yield: fab variation x thermal crosstalk
 uv run python examples/11_ffe_equalization.py      # zero-forcing FFE vs. an unequalized ISI penalty
+uv run python examples/12_published_number_reproduction.py  # NVIDIA's 3.5x claim, checked honestly
 ```
 
 ## How Etalon relates to other photonics tools
@@ -120,7 +121,7 @@ stay that way on purpose.
 ```
 src/etalon/          the toolkit
 tests/               434 tests, physics anchored to analytic/known values
-examples/            eleven runnable demos
+examples/            twelve runnable demos
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources

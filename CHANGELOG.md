@@ -7,6 +7,55 @@ reading it and nodding along. This file is the detailed record of those
 passes: what was checked, what was found, what got fixed. `README.md` states
 the headline (every module reviewed); this is the evidence.
 
+## 2026-08-18 — Example 12: reproducing a published industry claim
+
+`docs/THESIS.md` names this explicitly as the credibility move: reproduce
+a specific, sourced public claim rather than only illustrative numbers.
+`examples/12_published_number_reproduction.py` checks NVIDIA's cited
+"3.5x network power efficiency" claim (docs/RESEARCH.md) against etalon's
+own bottom-up per-lane energy model (`link.energy_per_bit_pj` on the
+existing CPO/pluggable presets) — without tuning assumptions to match.
+
+The honest result: etalon's ratio comes out to ~2.26x, and the absolute
+pJ/bit numbers sit below even the independently-published module-level
+ranges. The example states why explicitly rather than hiding it: etalon's
+model is per-lane optical-engine electrical energy, not a full-module or
+network-level number, so both the ratio and the absolute-value gaps have
+a specific, falsifiable explanation (SerDes/DSP allocation assumptions,
+thermal-tuning inclusion, and most importantly a layer-of-the-stack
+mismatch between "optical engine" and "network"), not a shrug. A
+sensitivity sweep over the toolkit's own explicit knobs shows even the
+most favorable defensible corner doesn't reach 3.5x on optics-only
+pJ/bit, supporting the read that NVIDIA's number folds in network-level
+savings beyond pure optical I/O.
+
+## 2026-08-18 — `link.pdl_penalty_db` / `aggregate_pdl_db`: polarization-dependent loss
+
+Adds a link-budget margin term for polarization-dependent loss (PDL) —
+the dB spread in a component's transmission across input polarization
+states, unavoidable for a fiber-coupled link with no polarization
+control. Deliberately scoped as a budgeting-level penalty, not a
+per-polarization circuit simulation: `penalties_db = pdl_db` for a
+single component (the worst polarization state costs exactly the PDL
+value below the nominal, best-state loss already booked as a
+`LossElement`), and `aggregate_pdl_db` combines cascaded components via
+linear dB summation — the standard conservative worst-case bound (true
+combined PDL depends on relative polarization-axis orientation, not
+knowable at a budgeting level, and is generally smaller).
+
+Adversarial review independently re-derived both formulas from a
+Jones-matrix diattenuator model (not from the docstrings) and confirmed
+both are correct: the penalty-equals-PDL claim holds when nominal loss
+represents the best-polarization-state (the convention this toolkit's
+own presets already use), and the linear-dB-sum bound was verified via
+a 20,000-trial Monte Carlo sweep over random axis orientations to never
+underestimate the true combined PDL. No bugs found. One docstring
+precision gap fixed: the original text said nominal loss represents
+"the best (or a typical) polarization state," but "typical" (e.g. an
+average-of-extremes datasheet convention) would actually imply a
+`pdl_db / 2` penalty, not the full value — tightened to say explicitly
+which convention the formula requires.
+
 ## 2026-08-17 — Etalon rename
 
 Renamed the package from `siphon` (PyPI: `siphon-photonics`) to `etalon`

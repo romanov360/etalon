@@ -12,10 +12,12 @@ from etalon.link import (
     Photodiode,
     Signaling,
     Tia,
+    aggregate_pdl_db,
     ber_from_q,
     crosstalk_penalty_db,
     energy_per_bit_pj,
     er_penalty_db,
+    pdl_penalty_db,
     preset_cpo_optical_io,
     preset_pluggable_dr4,
     q_from_ber,
@@ -109,6 +111,61 @@ def test_crosstalk_penalty():
     assert crosstalk_penalty_db(-20.0) == pytest.approx(0.0436, abs=1e-3)
     with pytest.raises(ValueError):
         crosstalk_penalty_db(0.0)
+
+
+# --- polarization-dependent loss (PDL) ------------------------------------------
+
+
+def test_pdl_penalty_is_identity():
+    # By definition PDL_dB = 10log10(Pmax/Pmin): the worst-case penalty
+    # IS the PDL value.
+    assert pdl_penalty_db(0.0) == 0.0
+    assert pdl_penalty_db(0.8) == pytest.approx(0.8)
+    assert pdl_penalty_db(2.3) == pytest.approx(2.3)
+
+
+def test_pdl_penalty_rejects_negative():
+    with pytest.raises(ValueError):
+        pdl_penalty_db(-0.1)
+
+
+def test_aggregate_pdl_is_linear_sum():
+    assert aggregate_pdl_db([0.5, 0.8, 0.3]) == pytest.approx(1.6)
+    assert aggregate_pdl_db([1.2]) == pytest.approx(1.2)
+    assert aggregate_pdl_db([0.0, 0.0]) == pytest.approx(0.0)
+
+
+def test_aggregate_pdl_matches_penalty_composition():
+    # Aggregating then penalizing must equal summing the individual
+    # penalties -- both are the same linear-dB-sum rule, just composed
+    # in a different order.
+    components = [0.4, 0.6, 1.1]
+    via_aggregate = pdl_penalty_db(aggregate_pdl_db(components))
+    via_sum = sum(pdl_penalty_db(v) for v in components)
+    assert via_aggregate == pytest.approx(via_sum)
+
+
+def test_aggregate_pdl_rejects_empty_or_negative():
+    with pytest.raises(ValueError):
+        aggregate_pdl_db([])
+    with pytest.raises(ValueError):
+        aggregate_pdl_db([0.5, -0.2])
+
+
+def test_pdl_booked_in_link_budget_penalties():
+    base = preset_cpo_optical_io()
+    grating_coupler_pdl_db = [0.4, 0.4]  # two fiber-chip interfaces
+    system_pdl = aggregate_pdl_db(grating_coupler_pdl_db)
+    with_pdl = LinkBudget(
+        laser=base.laser,
+        modulator=base.modulator,
+        path=base.path,
+        photodiode=base.photodiode,
+        tia=base.tia,
+        signaling=base.signaling,
+        penalties_db={**(base.penalties_db or {}), "pdl": pdl_penalty_db(system_pdl)},
+    )
+    assert with_pdl.margin_db == pytest.approx(base.margin_db - system_pdl, abs=1e-9)
 
 
 # --- receiver sensitivity ------------------------------------------------------
