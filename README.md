@@ -86,6 +86,7 @@ uv run python examples/09_touchstone_roundtrip.py  # write/read a .s2p file, fit
 uv run python examples/10_wdm_bank_yield.py        # whole-bank yield: fab variation x thermal crosstalk
 uv run python examples/11_ffe_equalization.py      # zero-forcing FFE vs. an unequalized ISI penalty
 uv run python examples/12_published_number_reproduction.py  # NVIDIA's 3.5x claim, checked honestly
+uv run python examples/13_pdk_import.py            # real SiEPIC foundry data -> Touchstone -> jointly-fit model
 ```
 
 ## How Etalon relates to other photonics tools
@@ -121,7 +122,9 @@ stay that way on purpose.
 ```
 src/etalon/          the toolkit
 tests/               434 tests, physics anchored to analytic/known values
-examples/            twelve runnable demos
+examples/            thirteen runnable demos
+examples/data/       vendored real foundry-process S-parameter data
+                      (MIT-licensed; see PROVENANCE.md for source/citation)
 docs/RESEARCH.md     industry deep-research report (July 2026)
 docs/THESIS.md       ranked startup theses + recommended play
 docs/research/       full raw evidence: agent transcripts, judge verdicts, sources

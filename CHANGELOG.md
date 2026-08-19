@@ -7,6 +7,49 @@ reading it and nodding along. This file is the detailed record of those
 passes: what was checked, what was found, what got fixed. `README.md` states
 the headline (every module reviewed); this is the evidence.
 
+## 2026-08-18 — Example 13: importing real foundry PDK data
+
+`examples/13_pdk_import.py` closes the loop `siphon.touchstone`
+(2026-08-17) opened: real, openly-licensed foundry-process S-parameter
+data — an FDTD sweep of a directional coupler on UBC's SiEPIC EBeam
+process (MIT-licensed, see `examples/data/PROVENANCE.md` for the exact
+commit/citation) — converted from its native Lumerical lookup-table
+format to a genuine Touchstone `.s3p` file, read back exactly as
+`etalon.touchstone` reads any external file, and calibrated against an
+`etalon.components.DirectionalCoupler` model.
+
+Adversarial review independently re-parsed the raw file from scratch
+(own parser, no shared code) and cross-checked all 16 S-matrix blocks
+byte-for-byte against `parse_lumerical_sparam`'s output — exact match,
+0.0 error. It also caught a real overclaim: the first version fit only
+the through-port path and reported a single `(coupling, loss_db)` pair
+as "the calibrated device," but that pair is provably non-unique —
+`through = (1-coupling)*10^(-loss_db/10)` is one equation in two
+unknowns, and six different starting points converged to six different
+"answers" with bit-identical residuals, exactly the coupling/loss
+degeneracy `etalon.extract`'s own module docstring warns about
+generically. Fixed properly, not just disclosed: the example now writes
+a 3-port file (through AND cross paths, both present in the real 4-port
+dataset) and fits both jointly, which breaks the degeneracy (coupling
+enters the cross path differently) — verified stable to 4+ decimal
+places from three different starting points. The example now
+demonstrates the degenerate through-only fit explicitly, side by side
+with the resolved joint fit, so the pitfall is taught, not hidden.
+Also fixed two related gaps the review found in the custom Lumerical
+lookup-table parser: silent overwrite on a duplicate S-parameter block
+(now raises), and an unhelpful downstream error on a dims/row-count
+mismatch (now raises with the actual problem named).
+
+Verified the port-mapping choice against the actual parsed data rather
+than assuming from file structure: |S31| ~0.88 (through) vs |S41| ~0.46
+(cross) vs |S11|,|S21| ~0.01-0.02 (isolation) at midband, energy
+conservation (sum of |S_i1|^2) staying in 0.947-0.988 across the whole
+band — consistent with a genuinely modest-loss device, not a parsing
+artifact. Also documents honestly what is and is not publicly
+available: no NDA-gated commercial PDK (AIM, imec, Tower) publishes
+component S-parameters openly; SiEPIC's foundry-process-calibrated FDTD
+data is the closest genuinely open equivalent.
+
 ## 2026-08-18 — Example 12: reproducing a published industry claim
 
 `docs/THESIS.md` names this explicitly as the credibility move: reproduce
