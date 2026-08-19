@@ -6,7 +6,7 @@ authors:
   - family-names: Romanov
     given-names: Tristan
 version: 0.1.0
-date-released: 2026-07-23
+date-released: 2026-08-19
 license: Apache-2.0
 repository-code: "https://github.com/romanov360/etalon"
 keywords:
