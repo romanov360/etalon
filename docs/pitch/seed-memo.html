@@ -1,0 +1,743 @@
+<title>Etalon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+  :root {
+    --ground:      #ECEFF2;
+    --surface:     #FBFCFD;
+    --surface-sub: #F1F4F6;
+    --ink:         #101820;
+    --ink-soft:    #3C4854;
+    --ink-mute:    #6B7885;
+    --rule:        #D2DAE1;
+    --rule-soft:   #E2E8ED;
+    --accent:      #B4162F;
+    --accent-soft: #F3DDE1;
+    --probe:       #0E6E78;
+    --probe-soft:  #DAEAEB;
+    --shadow:      0 1px 2px rgba(16,24,32,.05), 0 8px 24px -16px rgba(16,24,32,.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0B1014;
+      --surface:     #121A20;
+      --surface-sub: #182228;
+      --ink:         #E7EDF2;
+      --ink-soft:    #B6C2CC;
+      --ink-mute:    #7E8C98;
+      --rule:        #29353E;
+      --rule-soft:   #1E2830;
+      --accent:      #FF6274;
+      --accent-soft: #3A1A22;
+      --probe:       #4CC2CB;
+      --probe-soft:  #103336;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0B1014;
+    --surface:     #121A20;
+    --surface-sub: #182228;
+    --ink:         #E7EDF2;
+    --ink-soft:    #B6C2CC;
+    --ink-mute:    #7E8C98;
+    --rule:        #29353E;
+    --rule-soft:   #1E2830;
+    --accent:      #FF6274;
+    --accent-soft: #3A1A22;
+    --probe:       #4CC2CB;
+    --probe-soft:  #103336;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 20px 96px;
+  }
+
+  .sheet {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 40px 0 22px;
+  }
+  .wordmark {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 26px;
+    letter-spacing: .01em;
+  }
+  .wordmark em { font-style: italic; color: var(--accent); }
+  .stamp {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+
+  /* ---------- hero ---------- */
+
+  .hero { padding: 8px 0 0; }
+  h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(34px, 6.2vw, 54px);
+    line-height: 1.08;
+    letter-spacing: -.005em;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 .dim { color: var(--ink-mute); }
+  .deck {
+    margin: 20px 0 0;
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    text-wrap: pretty;
+  }
+  .deck strong { color: var(--ink); font-weight: 600; }
+
+  .scan {
+    margin: 30px 0 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 0;
+  }
+  #comb { display: block; width: 100%; height: 96px; }
+  .scan-caption {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+    padding: 8px 2px 0;
+    letter-spacing: .02em;
+  }
+  .scan-caption .flag { color: var(--accent); }
+
+  /* ---------- disclosure rows ---------- */
+
+  .rows {
+    margin-top: 44px;
+    border-top: 1px solid var(--rule);
+  }
+  .row {
+    border-bottom: 1px solid var(--rule);
+  }
+  .row > summary {
+    display: grid;
+    grid-template-columns: 92px 1fr 20px;
+    gap: 16px;
+    align-items: start;
+    padding: 20px 2px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .row > summary::-webkit-details-marker { display: none; }
+  .row > summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+  .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    padding-top: 5px;
+  }
+  .row[open] > summary .tag { color: var(--accent); }
+  .claim {
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 500;
+    text-wrap: pretty;
+  }
+  .chev {
+    width: 20px; height: 20px;
+    margin-top: 5px;
+    color: var(--ink-mute);
+    transition: transform .18s ease;
+  }
+  .row[open] > summary .chev { transform: rotate(90deg); color: var(--accent); }
+  .row > summary:hover .claim { color: var(--accent); }
+
+  .body {
+    padding: 0 0 26px;
+    max-width: 62ch;
+  }
+  @media (max-width: 620px) {
+    .row > summary { grid-template-columns: 1fr 20px; }
+    .tag { grid-column: 1 / 3; padding-top: 0; }
+  }
+  .body-wrap {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 620px) {
+    .body-wrap { grid-template-columns: 1fr; }
+  }
+  .body-wrap > .spacer { border-right: 1px solid var(--rule-soft); }
+  @media (max-width: 620px) { .body-wrap > .spacer { display: none; } }
+
+  /* ---------- level-2 content ---------- */
+
+  ul.pts {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  ul.pts li {
+    position: relative;
+    padding-left: 18px;
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    line-height: 1.5;
+  }
+  ul.pts li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: .66em;
+    width: 7px; height: 1px;
+    background: var(--accent);
+  }
+  ul.pts li b { color: var(--ink); font-weight: 600; }
+  .num {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  .subhead {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 22px 0 10px;
+  }
+
+  /* ---------- level-3 intuition ---------- */
+
+  .why {
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    box-shadow: var(--shadow);
+  }
+  .why > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 12px 16px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: .04em;
+    color: var(--probe);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .why > summary::-webkit-details-marker { display: none; }
+  .why > summary:focus-visible { outline: 2px solid var(--probe); outline-offset: -2px; }
+  .why > summary::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--probe);
+    flex: none;
+  }
+  .why[open] > summary { border-bottom: 1px solid var(--rule-soft); }
+  .why-body { padding: 16px 16px 18px; }
+  .why-body p {
+    margin: 0 0 10px;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+  }
+  .why-body p:last-child { margin-bottom: 0; }
+  .why-body p b { color: var(--ink); font-weight: 600; }
+
+  figure { margin: 4px 0 16px; }
+  figcaption {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--ink-mute);
+    margin-top: 8px;
+  }
+  svg.fig { display: block; width: 100%; height: auto; overflow: visible; }
+
+  /* engine grid */
+  .engines {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 5px;
+    max-width: 320px;
+  }
+  .engines i {
+    display: block;
+    aspect-ratio: 1;
+    background: var(--probe-soft);
+    border: 1px solid var(--probe);
+    border-radius: 1px;
+  }
+  .engines i.bad {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ---------- absorbed table ---------- */
+
+  .scroller { overflow-x: auto; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14.5px;
+    min-width: 380px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 14px 9px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+    color: var(--ink-soft);
+  }
+  th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 400;
+  }
+  td.who { color: var(--ink); font-weight: 500; white-space: nowrap; }
+  td.arrow { color: var(--accent); font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  /* ---------- tiers ---------- */
+
+  .tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--rule-soft);
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    margin: 4px 0 0;
+  }
+  .tier {
+    background: var(--surface);
+    padding: 15px 16px;
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .tier .amt {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 26px;
+    line-height: 1;
+    padding-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tier .lede { font-size: 15px; color: var(--ink); font-weight: 500; line-height: 1.4; }
+  .tier .sub { font-size: 14.5px; color: var(--ink-soft); margin-top: 5px; line-height: 1.5; }
+  .tier.pick { background: var(--accent-soft); }
+  .tier.pick .amt { color: var(--accent); }
+  .pill {
+    display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 100px;
+    padding: 1px 7px;
+    margin-left: 8px;
+    vertical-align: 2px;
+  }
+  @media (max-width: 620px) {
+    .tier { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    margin-top: 44px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--ink-mute);
+    max-width: 64ch;
+  }
+  footer p { margin: 0 0 9px; }
+  footer code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="masthead">
+    <div class="wordmark">Etalon<em>.</em></div>
+    <div class="stamp">Seed memo &nbsp;·&nbsp; August 2026</div>
+  </div>
+
+  <div class="hero">
+    <h1>Computers are starting to talk in light.<br><span class="dim">Nobody can predict which parts will work.</span></h1>
+    <p class="deck">We build the software that predicts it — then the data layer that certifies it. <strong>The engine is already public and shipping.</strong> We are raising $3–30M, and we are honest about which end of that range the evidence supports.</p>
+  </div>
+
+  <div class="scan">
+    <canvas id="comb" aria-label="A spectrum scan showing nine evenly spaced resonance peaks; the fourth peak is off its channel and drawn in red."></canvas>
+  </div>
+  <div class="scan-caption">
+    <span>Ring bank · 9 channels · transmission</span>
+    <span class="flag">CH 4 — will not lock</span>
+  </div>
+
+  <div class="rows">
+
+    <!-- 1 ------------------------------------------------------------ -->
+    <details class="row">
+      <summary>
+        <span class="tag">The shift</span>
+        <span class="claim">AI datacenters are replacing copper wires with light.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <ul class="pts">
+          <li>Copper stops working past a certain speed and distance. AI clusters passed that point.</li>
+          <li>So the wires become glass, and the signal becomes light.</li>
+          <li>Now the light is moving <b>onto the chip package itself</b>. The industry calls this co-packaged optics, or CPO.</li>
+          <li>Market for these parts: <span class="num">$4.2B</span> in 2024 → <span class="num">$24.8B</span> by 2030.</li>
+          <li>CPO is about <span class="num">0.5%</span> of AI-datacenter optics today, forecast at <span class="num">30–35%</span> of high-speed ports by 2030. The whole transition is ahead of us, not behind.</li>
+        </ul>
+
+        <details class="why">
+          <summary>What does “talking in light” actually mean?</summary>
+          <div class="why-body">
+            <p>A copper wire is like <b>shouting down a hallway</b>. The faster you talk and the further you go, the more garbled it gets. Eventually you are spending more energy on the shouting than on the thinking.</p>
+            <p>A glass fiber is like <b>a flashlight down that same hallway</b>. Speed and distance mostly stop being the problem.</p>
+            <p>The hard part is the translator at each end: something that turns electricity into light and back again, small enough to sit next to the processor. That translator is a photonic chip — a silicon chip with channels for light etched into it instead of wires.</p>
+            <p>Every big AI chip is getting one. Almost nobody knows how to test them.</p>
+          </div>
+        </details>
+      </div></div>
+    </details>
+
+    <!-- 2 ------------------------------------------------------------ -->
+    <details class="row">
+      <summary>
+        <span class="tag">The break</span>
+        <span class="claim">You cannot yet tell a good light chip from a bad one, cheaply.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <ul class="pts">
+          <li>Fully inspecting one photonic chip takes <b>over 100 seconds</b>. Electronic chips take milliseconds.</li>
+          <li>There is no agreed standard for that test. Much of the alignment is still done by hand.</li>
+          <li>One CPO package holds <b>24 or more optical engines</b>.</li>
+          <li>One bad engine scraps the entire package. After co-packaging there is no rework.</li>
+          <li>TSMC names optical test, fiber attach, and packaging — not device physics — as the things blocking CPO.</li>
+        </ul>
+
+        <details class="why">
+          <summary>Why is testing light so much harder than testing electronics?</summary>
+          <div class="why-body">
+            <p>To test an electronic chip you touch it with a metal needle. To test a photonic chip you have to <b>shine light into it</b> — and hit a target far smaller than the beam.</p>
+            <figure>
+              <svg class="fig" viewBox="0 0 480 128" role="img" aria-label="A fiber core drawn as a large circle next to the waveguide it must hit, drawn as a nearly invisible sliver about 800 times smaller in area.">
+                <circle cx="66" cy="64" r="50" fill="var(--probe-soft)" stroke="var(--probe)" stroke-width="1.5"/>
+                <text x="66" y="64" text-anchor="middle" dominant-baseline="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--probe)">fiber</text>
+                <line x1="128" y1="64" x2="286" y2="64" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 4"/>
+                <rect x="298" y="61.5" width="10" height="5" fill="var(--accent)"/>
+                <line x1="303" y1="55" x2="303" y2="30" stroke="var(--accent)" stroke-width="1"/>
+                <text x="312" y="27" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--accent)">the waveguide</text>
+                <text x="312" y="42" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-mute)">(drawn to scale)</text>
+              </svg>
+              <figcaption>Fiber core ≈ 78.5 µm². Waveguide ≈ 0.099 µm². About 800× the area, and you must hit it exactly.</figcaption>
+            </figure>
+            <p>That is threading a needle, by hand, more than twenty times per package, on every package you build.</p>
+            <figure>
+              <div class="engines" role="img" aria-label="Twenty-four squares representing optical engines in one package; one is marked bad in red.">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="bad"></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <figcaption>24 engines in a package. One bad engine bins the whole assembly — and the assembly is the expensive part.</figcaption>
+            </figure>
+            <p>It is an egg carton where a single bad egg means you throw out the carton, except the carton is worth thousands of dollars and you only find out at the very end.</p>
+          </div>
+        </details>
+      </div></div>
+    </details>
+
+    <!-- 3 ------------------------------------------------------------ -->
+    <details class="row">
+      <summary>
+        <span class="tag">The vacuum</span>
+        <span class="claim">Every independent vendor of this software was bought in about twelve months.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <div class="scroller">
+          <table>
+            <thead><tr><th>Was independent</th><th></th><th>Now owned by</th></tr></thead>
+            <tbody>
+              <tr><td class="who">Lumerical</td><td class="arrow">→</td><td>Synopsys</td></tr>
+              <tr><td class="who">RSoft + VPIphotonics</td><td class="arrow">→</td><td>Keysight</td></tr>
+              <tr><td class="who">Luceda</td><td class="arrow">→</td><td>Semitronix (China)</td></tr>
+              <tr><td class="who">Quantifi</td><td class="arrow">→</td><td>Teradyne</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="pts" style="margin-top:18px">
+          <li>Meanwhile <span class="num">110+</span> US photonics companies, four foundry ecosystems, and every hyperscaler CPO team still need modern tooling.</li>
+          <li>There is no neutral, cloud-native vendor left. The seat is empty.</li>
+        </ul>
+
+        <details class="why">
+          <summary>Why does who owns the software matter?</summary>
+          <div class="why-body">
+            <p>Because the buyers are now the same companies selling you the test machines.</p>
+            <p>If Teradyne owns your yield analytics, then <b>Teradyne learns which of your chips fail and why</b> — and sells that understanding, in aggregate, back into your industry. Chip companies have spent forty years refusing exactly this arrangement in electronics. They will refuse it here too.</p>
+            <p>The one remaining independent option, Luceda, is Chinese-owned. That disqualifies it from US defense floors and from a growing number of commercial ones.</p>
+            <p>So the customers have a real problem and no neutral answer. That is the opening.</p>
+          </div>
+        </details>
+      </div></div>
+    </details>
+
+    <!-- 4 ------------------------------------------------------------ -->
+    <details class="row">
+      <summary>
+        <span class="tag">The plan</span>
+        <span class="claim">Give the engine away. Sell the qualification. Then own the yield data.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <div class="subhead">Step 1 — the open engine (done)</div>
+        <ul class="pts">
+          <li>Etalon predicts how a light link will behave <b>before any silicon exists</b>: how much signal survives, how much power it burns, how many parts will pass.</li>
+          <li>Open source, Apache-2.0, free forever. This is the credibility artifact and the way in. It is deliberately not the revenue.</li>
+        </ul>
+
+        <div class="subhead">Step 2 — sell qualification compression (months 0–12)</div>
+        <ul class="pts">
+          <li><span class="num">$200K–$3M</span> engagements with CPO challengers and packaging houses: link-margin modeling, test-time compression, wafer-to-package correlation.</li>
+          <li>The budget provably exists. Meta disclosed a <span class="num">90-million-hour</span> reliability program for this.</li>
+          <li>Every contract carries data rights to the resulting model improvements, in writing, from contract one.</li>
+        </ul>
+
+        <div class="subhead">Step 3 — own known-good-die analytics (months 6–24)</div>
+        <ul class="pts">
+          <li>Software that says which optical engines are good enough to package. Priced per wafer, against scrap the customer can already measure.</li>
+          <li>It runs on someone else's probe hardware. We own the statistics, not the machine.</li>
+          <li>Partner with a probe vendor that lacks an analytics story — FormFactor or ficonTEC — not Teradyne, which already bought one.</li>
+        </ul>
+
+        <div class="subhead">What we will not do</div>
+        <ul class="pts">
+          <li>No chiplet. No laser. Those lanes need <span class="num">$500M+</span> and are already closed.</li>
+          <li>No head-on “digital twin” product against Keysight. We would lose.</li>
+          <li>No raise until one design partner signs with data access and model ownership in the contract. Without that the models are toys, and we would rather say so now.</li>
+        </ul>
+      </div></div>
+    </details>
+
+    <!-- 5 ------------------------------------------------------------ -->
+    <details class="row">
+      <summary>
+        <span class="tag">The proof</span>
+        <span class="claim">The engine already exists, in public, and has already found things.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <ul class="pts">
+          <li>Version 0.1.0 is shipped and public: <span class="num">15</span> modules, <span class="num">440</span> tests, <span class="num">13</span> runnable examples, zero heavy dependencies.</li>
+          <li>Every module passed an independent adversarial review before being called done — nine rounds so far. Each round found real bugs. All are fixed and pinned as tests.</li>
+          <li>We reproduced NVIDIA's public <span class="num">3.5×</span> power-efficiency claim from first principles and got <span class="num">2.2×</span>. We published the gap and explained it, instead of tuning our model until it matched.</li>
+          <li>We found a blind spot nobody had composed before: a WDM ring bank tuned for lowest power can end up <b>physically impossible to lock</b> — not expensive, impossible.</li>
+        </ul>
+
+        <details class="why">
+          <summary>What is a ring bank, and why can it be impossible?</summary>
+          <div class="why-body">
+            <p>To fit many channels down one fiber, each channel gets its own color of light. On the chip, each color is picked out by a <b>microring</b> — a tiny loop that resonates at one color, like a tuning fork that only answers to one note.</p>
+            <p>Fabrication leaves every ring slightly out of tune. So you put a small heater next to each one and warm it until it lands on its note. Standard practice.</p>
+            <p>The catch: <b>heating one ring also warms its neighbors</b>. The usual optimizer picks the cheapest arrangement while pretending the rings are thermally isolated from each other. They are not.</p>
+            <p>When we solved both problems together, some “cheapest” arrangements came back asking for <b>negative heater power</b> on two of eight rings — their neighbors' heat alone already pushes them past their target. A heater cannot make something colder. That bank can never lock, and the power number gets quietly <em>better</em> right up until it fails.</p>
+            <p>That is the class of problem this whole company exists to catch, and you only find it by building the whole thing.</p>
+          </div>
+        </details>
+      </div></div>
+    </details>
+
+    <!-- 6 ------------------------------------------------------------ -->
+    <details class="row" open>
+      <summary>
+        <span class="tag">The ask</span>
+        <span class="claim">$3M buys the partner. $8M is the plan. $30M only when the wafers are real.</span>
+        <svg class="chev" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="body-wrap"><div class="spacer"></div><div class="body">
+        <div class="tiers">
+          <div class="tier">
+            <div class="amt">$3M</div>
+            <div>
+              <div class="lede">Land the design partner.</div>
+              <div class="sub">18 months, 4 people. First paid qualification engagements. Fund one engineer to co-chair the known-good-die standard, so we write the vocabulary the category uses.</div>
+            </div>
+          </div>
+          <div class="tier pick">
+            <div class="amt">$8M</div>
+            <div>
+              <div class="lede">Build the yield layer.<span class="pill">Recommended</span></div>
+              <div class="sub">24–30 months, 8–12 people. Analytics running on a partner's production floor, priced per wafer. This is the number our own analysis supports, and we would rather you held us to it.</div>
+            </div>
+          </div>
+          <div class="tier">
+            <div class="amt">$30M</div>
+            <div>
+              <div class="lede">Expansion, not seed.</div>
+              <div class="sub">Only unlocked once per-wafer revenue attaches to real CPO volume, around 2028–29. Our own adversarial review killed the case for raising this now. Do not price it in today.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subhead">What we think this returns</div>
+        <ul class="pts">
+          <li><b>Base case:</b> a <span class="num">$150–400M</span> strategic sale to whoever loses the analytics race — Advantest, FormFactor, or Keysight — on <span class="num">$5–8M</span> raised.</li>
+          <li><b>Tail:</b> a <span class="num">$1B+</span> standalone if per-wafer analytics attaches at full CPO volume.</li>
+          <li><b>Comparable exits, all recent:</b> Teramount <span class="num">$430M</span> ten months after a $50M round. Nubis <span class="num">$270M</span>. DustPhotonics <span class="num">~$1.3B</span>. Time to exit under four years.</li>
+          <li>We are not claiming more. The entire silicon-photonics module market is forecast at <span class="num">~$25B</span> in 2030. Anyone promising you a hundred-billion-dollar photonics company is selling something.</li>
+        </ul>
+      </div></div>
+    </details>
+
+  </div>
+
+  <footer>
+    <p>Every figure here traces to a source in the repository: a 21,000-word industry research run from July 2026 (<code>docs/RESEARCH.md</code>) and the ranked thesis it produced (<code>docs/THESIS.md</code>), including the adversarial verdicts that killed four of the six ideas we considered.</p>
+    <p>Honesty note: the toolkit's built-in presets are plausible illustrations built from published data, not measured silicon. Calibrating them against a real partner's wafer data is exactly the thing this raise buys.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var cv = document.getElementById("comb");
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext("2d");
+
+  function token(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function draw() {
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var pad = 6, F = 260, NPEAK = 9;
+    var ink = token("--ink-soft") || "#3C4854";
+    var accent = token("--accent") || "#B4162F";
+    var rule = token("--rule-soft") || "#E2E8ED";
+
+    // baseline
+    ctx.strokeStyle = rule;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h - pad + .5);
+    ctx.lineTo(w, h - pad + .5);
+    ctx.stroke();
+
+    // channel grid: where each peak is supposed to sit
+    for (var k = 0; k < NPEAK; k++) {
+      var gx = w * (k + .5) / NPEAK;
+      ctx.beginPath();
+      ctx.moveTo(Math.round(gx) + .5, pad);
+      ctx.lineTo(Math.round(gx) + .5, h - pad);
+      ctx.stroke();
+    }
+
+    // the comb. channel index 3 (0-based) is detuned: it misses its grid line.
+    var DETUNED = 3, SHIFT = 0.34;   // fraction of a channel spacing
+
+    function trace(from, to, color, width) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      var started = false;
+      for (var x = from; x <= to; x += 0.5) {
+        var best = 0;
+        for (var k = 0; k < NPEAK; k++) {
+          var centre = w * (k + .5) / NPEAK + (k === DETUNED ? SHIFT * w / NPEAK : 0);
+          var d = (x - centre) / (w / NPEAK) * Math.PI;
+          var t = 1 / (1 + F * Math.sin(d) * Math.sin(d));
+          if (t > best) best = t;
+        }
+        var y = (h - pad) - best * (h - 2 * pad);
+        if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
+      }
+      ctx.stroke();
+    }
+
+    var lo = w * (DETUNED + .5) / NPEAK - w / NPEAK * .5;
+    var hi = lo + w / NPEAK;
+    trace(0, lo, ink, 1.25);
+    trace(hi, w, ink, 1.25);
+    trace(lo, hi, accent, 1.75);
+  }
+
+  draw();
+  window.addEventListener("resize", draw);
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    if (mq.addEventListener) mq.addEventListener("change", draw);
+  }
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+})();
+</script>
