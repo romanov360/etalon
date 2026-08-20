@@ -36,7 +36,7 @@ uv run pytest          # 434 tests
 ```
 
 ```bash
-pip install etalon   # once published to PyPI
+pip install etalon      # Python 3.10+
 ```
 
 ## What's inside

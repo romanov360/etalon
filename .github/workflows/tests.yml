@@ -7,6 +7,23 @@ on:
     branches: [master]
 
 jobs:
+  # The full suite on every Python the package claims to support, so
+  # `requires-python` in pyproject.toml stays an audited claim, not a guess.
+  matrix-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+      - run: uv sync --python ${{ matrix.python-version }}
+      - run: uv run --python ${{ matrix.python-version }} pytest -q
+
+  # Typechecking, coverage, examples and docs run once, on the newest version.
   test:
     runs-on: ubuntu-latest
     steps:
