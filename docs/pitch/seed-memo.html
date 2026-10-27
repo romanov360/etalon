@@ -296,6 +296,19 @@
   }
   svg.fig { display: block; width: 100%; height: auto; overflow: visible; }
 
+  .term {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 14px;
+    background: var(--surface-sub);
+    border: 1px solid var(--rule-soft);
+    border-radius: 2px;
+    padding: 11px 14px;
+    color: var(--ink);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .term-prompt { color: var(--accent); margin-right: 9px; user-select: none; }
+
   /* engine grid */
   .engines {
     display: grid;
@@ -421,7 +434,7 @@
 
   <div class="hero">
     <h1>Computers are starting to talk in light.<br><span class="dim">Nobody can predict which parts will work.</span></h1>
-    <p class="deck">We build the software that predicts it — then the data layer that certifies it. <strong>The engine is already public and shipping.</strong> We are raising $3–30M, and we are honest about which end of that range the evidence supports.</p>
+    <p class="deck">We build the software that predicts it — then the data layer that certifies it. <strong>The engine is already public, and you can install it today.</strong> We are raising $3–30M, and we are honest about which end of that range the evidence supports.</p>
   </div>
 
   <div class="scan">
@@ -555,7 +568,7 @@
         <div class="subhead">Step 1 — the open engine (done)</div>
         <ul class="pts">
           <li>Etalon predicts how a light link will behave <b>before any silicon exists</b>: how much signal survives, how much power it burns, how many parts will pass.</li>
-          <li>Open source, Apache-2.0, free forever. This is the credibility artifact and the way in. It is deliberately not the revenue.</li>
+          <li>Open source, Apache-2.0, free forever, and already on PyPI. This is the credibility artifact and the way in. It is deliberately not the revenue.</li>
         </ul>
 
         <div class="subhead">Step 2 — sell qualification compression (months 0–12)</div>
@@ -590,11 +603,17 @@
       </summary>
       <div class="body-wrap"><div class="spacer"></div><div class="body">
         <ul class="pts">
-          <li>Version 0.1.0 is shipped and public: <span class="num">15</span> modules, <span class="num">440</span> tests, <span class="num">13</span> runnable examples, zero heavy dependencies.</li>
+          <li>It is <b>published and installable right now</b> — not a repo you have to build, a package you can pull in one line.</li>
+          <li>Version <span class="num">0.2.0</span>: <span class="num">15</span> modules, <span class="num">440</span> tests passing on four Python versions, <span class="num">13</span> runnable examples, zero heavy dependencies, Apache-2.0.</li>
           <li>Every module passed an independent adversarial review before being called done — nine rounds so far. Each round found real bugs. All are fixed and pinned as tests.</li>
           <li>We reproduced NVIDIA's public <span class="num">3.5×</span> power-efficiency claim from first principles and got <span class="num">2.2×</span>. We published the gap and explained it, instead of tuning our model until it matched.</li>
           <li>We found a blind spot nobody had composed before: a WDM ring bank tuned for lowest power can end up <b>physically impossible to lock</b> — not expensive, impossible.</li>
         </ul>
+
+        <figure>
+          <div class="term"><span class="term-prompt">$</span> pip install etalon-photonics</div>
+          <figcaption>pypi.org/project/etalon-photonics &nbsp;·&nbsp; Apache-2.0 &nbsp;·&nbsp; Python 3.10+</figcaption>
+        </figure>
 
         <details class="why">
           <summary>What is a ring bank, and why can it be impossible?</summary>
