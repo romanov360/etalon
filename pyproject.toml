@@ -1,6 +1,6 @@
 [project]
 name = "etalon-photonics"
-version = "0.1.0"
+version = "0.2.0"
 description = "Etalon — an open-source silicon photonics design toolkit: material models, waveguide mode solvers, S-matrix photonic circuit simulation, optical link budgets for AI-datacenter interconnects (co-packaged optics, pluggables), and Monte Carlo yield analysis for photonic integrated circuits (PICs)."
 readme = "README.md"
 requires-python = ">=3.10"

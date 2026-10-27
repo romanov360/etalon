@@ -7,6 +7,45 @@ reading it and nodding along. This file is the detailed record of those
 passes: what was checked, what was found, what got fixed. `README.md` states
 the headline (every module reviewed); this is the evidence.
 
+## 2026-10-27 — v0.2.0: first PyPI release, as `etalon-photonics`
+
+The distribution name `etalon` was taken on PyPI on 2026-09-25 by an
+unrelated project (Coyos d.o.o.), five weeks after this repo adopted the
+name. That package also occupies the top-level `etalon` import, so a
+differently-named distribution that still installed `etalon/` would
+clobber it for anyone holding both. The distribution is therefore
+`etalon-photonics` and the module `etalon_photonics`; the project,
+repository and documentation keep the Etalon name.
+
+Because the import path moved, this is a breaking change for anyone who
+cloned v0.1.0 — hence 0.2.0 rather than 0.1.1.
+
+Packaging defects found while preparing the first release, all of which
+predate it and none of which the test suite could have caught:
+
+- A symlink committed under `docs/research/raw/task-outputs/` pointed at
+  an absolute path on the author's machine. It was dead in every clone
+  and hard-failed `uv build` ("symlink destination outside target
+  directory"), so no source distribution could be produced at all.
+  Removed; nothing referenced it.
+- The sdist swept in the 18 MB `docs/research` corpus, yielding an 8.3 MB
+  tarball. Scoped to library, tests, examples and metadata: 182 KB.
+- `requires-python` was `>=3.13`, excluding most of the photonics Python
+  ecosystem. Nothing in the source needs it — the newest syntax used is
+  `match` (3.10+); the floor came from `numpy`/`scipy` pins set to
+  whatever was current at authoring time. The full suite was verified on
+  3.10, 3.11, 3.12 and 3.13, so the floor is now 3.10 with `numpy>=2.0`
+  and `scipy>=1.13`, and CI runs the matrix to keep that an audited claim
+  rather than an assumed one.
+- `scipy-stubs` (typing-only, needs 3.12+) was letting the dev
+  toolchain's constraint leak into the published package's; it is now
+  marked as applying only on 3.12+.
+
+Releases are now cut by pushing a `v*` tag. `publish.yml` builds, asserts
+the tag matches `version` in `pyproject.toml`, runs `twine check`, and
+uploads over PyPI Trusted Publishing (OIDC). No API token is stored in
+the repository.
+
 ## 2026-08-18 — Example 13: importing real foundry PDK data
 
 `examples/13_pdk_import.py` closes the loop `siphon.touchstone`
