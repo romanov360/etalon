@@ -1,3 +1,3 @@
-# etalon.wdm
+# etalon_photonics.wdm
 
-::: etalon.wdm
+::: etalon_photonics.wdm

@@ -9,7 +9,7 @@ energy per bit by contributor, and converts the pJ/bit difference into wall
 power and electricity cost for a 51.2 Tb/s switch carrying 64 x 800G of
 optical engines.
 
-Requires etalon.link. All component numbers are the presets' illustrative
+Requires etalon_photonics.link. All component numbers are the presets' illustrative
 2026-plausible values, not any vendor's data. Units: dB/dBm optical, pJ/bit
 electrical, W and $ as labelled.
 """
@@ -122,13 +122,13 @@ def maybe_plot(epb_plug: dict[str, float], epb_cpo: dict[str, float]) -> None:
 
 def main() -> int:
     try:
-        from etalon.link import (
+        from etalon_photonics.link import (
             energy_per_bit_pj,
             preset_cpo_optical_io,
             preset_pluggable_dr4,
         )
     except ImportError as exc:
-        print("This example needs etalon.link, which is not built in this")
+        print("This example needs etalon_photonics.link, which is not built in this")
         print(f"checkout yet ({exc}).")
         print("Re-run after integration; example 01 runs on the core modules alone.")
         return 1
@@ -140,7 +140,7 @@ def main() -> int:
     print("Two ways to get bits off a 51.2 Tb/s switch ASIC:")
     print("  A. pluggable DR4-class module — 106.25 Gb/s PAM4, Si MZM, full DSP")
     print("  B. CPO / optical I/O          — 32 Gb/s NRZ, microring, remote laser")
-    print("All numbers are the presets' illustrative values (see etalon.link).")
+    print("All numbers are the presets' illustrative values (see etalon_photonics.link).")
 
     header("A. Pluggable DR4 — link-budget waterfall (per lane)")
     print(plug.report())

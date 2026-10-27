@@ -1,3 +1,3 @@
-# etalon.link
+# etalon_photonics.link
 
-::: etalon.link
+::: etalon_photonics.link

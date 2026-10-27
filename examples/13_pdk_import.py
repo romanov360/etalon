@@ -6,9 +6,9 @@ S-parameter sweep of a directional coupler on the SiEPIC EBeam process (UBC's
 open-access e-beam MPW program; see examples/data/PROVENANCE.md for exact
 source, commit, and license) — converts it from its native Lumerical
 lookup-table format to a real Touchstone .s2p file, reads that file back with
-etalon.touchstone exactly as an external tool would produce it, and
-calibrates an etalon.components.DirectionalCoupler model against it with
-etalon.extract. This is the credibility loop docs/THESIS.md and
+etalon_photonics.touchstone exactly as an external tool would produce it, and
+calibrates an etalon_photonics.components.DirectionalCoupler model against it with
+etalon_photonics.extract. This is the credibility loop docs/THESIS.md and
 docs/RESEARCH.md describe: real PDK/foundry data in, calibrated Etalon
 model out, using nothing but the standard file format the whole industry
 already speaks.
@@ -66,7 +66,7 @@ def parse_lumerical_sparam(path: Path) -> tuple[np.ndarray, np.ndarray, int]:
 
     Returns (freq_hz, s, n_ports): freq_hz shape (n_freq,), s shape
     (n_freq, n_ports, n_ports) complex, S[out, in] — the same convention
-    etalon.circuit and etalon.touchstone use.
+    etalon_photonics.circuit and etalon_photonics.touchstone use.
     """
     lines = path.read_text().splitlines()
     blocks: dict[tuple[int, int], tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
@@ -139,11 +139,11 @@ def parse_lumerical_sparam(path: Path) -> tuple[np.ndarray, np.ndarray, int]:
 
 def main() -> int:
     try:
-        from etalon import touchstone as ts
-        from etalon.components import DirectionalCoupler
-        from etalon.extract import fit_transmission
+        from etalon_photonics import touchstone as ts
+        from etalon_photonics.components import DirectionalCoupler
+        from etalon_photonics.extract import fit_transmission
     except ImportError as exc:
-        print(f"This example needs etalon.touchstone/components/extract ({exc}).")
+        print(f"This example needs etalon_photonics.touchstone/components/extract ({exc}).")
         return 1
 
     if not SPARAM_FILE.exists():
@@ -197,7 +197,7 @@ def main() -> int:
     print(f"Wrote {OUT_S3P.relative_to(Path(__file__).resolve().parent.parent)} "
           f"({OUT_S3P.stat().st_size} bytes) — 3 ports, both through and cross paths.")
 
-    header("Step 3: read it back exactly as etalon.touchstone reads any .sNp file")
+    header("Step 3: read it back exactly as etalon_photonics.touchstone reads any .sNp file")
     data = ts.read_touchstone(OUT_S3P)
     print(f"Parsed: {data.ports} ports, {data.freq_hz.size} points, "
           f"R = {data.reference_ohms:.0f} ohm — indistinguishable from a file")

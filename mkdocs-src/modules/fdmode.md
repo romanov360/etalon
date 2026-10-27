@@ -1,3 +1,3 @@
-# etalon.fdmode
+# etalon_photonics.fdmode
 
-::: etalon.fdmode
+::: etalon_photonics.fdmode

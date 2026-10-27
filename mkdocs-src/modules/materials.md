@@ -1,3 +1,3 @@
-# etalon.materials
+# etalon_photonics.materials
 
-::: etalon.materials
+::: etalon_photonics.materials

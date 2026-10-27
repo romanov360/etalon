@@ -36,32 +36,32 @@ uv run pytest          # 434 tests
 ```
 
 ```bash
-pip install etalon      # Python 3.10+
+pip install etalon-photonics    # Python 3.10+
 ```
 
 ## What's inside
 
 | Module | What it does |
 |---|---|
-| `etalon.materials` | Sellmeier refractive-index models (Si, SiO₂, Si₃N₄) with validity ranges, thermo-optic coefficients, material group index |
-| `etalon.waveguide` | Exact three-layer slab TE/TM mode solver; effective-index-method strip/rib solver with near-cutoff accuracy warning; n_eff, group index, chromatic dispersion; bend-loss heuristic |
-| `etalon.fdmode` | Semi-vectorial finite-difference mode solver on the cross-section — the in-repo check on the EIM's own approximation |
-| `etalon.components` | S-parameter models: straight, directional coupler, Y-branch, phase shifters, grating coupler, all-pass & add-drop rings (Bogaerts 2012), analytic MZI |
-| `etalon.circuit` | Netlist-level S-matrix circuit solver (subnetwork reduction with proper feedback handling — rings built from couplers work) |
-| `etalon.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk/PDL penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
-| `etalon.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
-| `etalon.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
-| `etalon.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking, and whole-bank (jointly-coupled) yield for metrics — like thermal-crosstalk-coupled ring tuning — that can't be decomposed lane-by-lane |
-| `etalon.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
-| `etalon.equalize` | Closed-form zero-forcing FFE tap solver: symbol-spaced pulse response of a passive filter, Toeplitz tap solve, and the noise-enhancement penalty equalization always costs — the priced version of `etalon.isi`'s "treat as an upper bound with an FFE receiver" caveat |
-| `etalon.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
-| `etalon.touchstone` | Touchstone (.sNp) file I/O: read/write measured or foundry-exported S-parameter data (MA/DB/RI, all frequency units) into the same `ports` + `s_params(wl)` protocol as any Etalon component — the real-data on-ramp into `etalon.extract`/`etalon.circuit` |
-| `etalon.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
+| `etalon_photonics.materials` | Sellmeier refractive-index models (Si, SiO₂, Si₃N₄) with validity ranges, thermo-optic coefficients, material group index |
+| `etalon_photonics.waveguide` | Exact three-layer slab TE/TM mode solver; effective-index-method strip/rib solver with near-cutoff accuracy warning; n_eff, group index, chromatic dispersion; bend-loss heuristic |
+| `etalon_photonics.fdmode` | Semi-vectorial finite-difference mode solver on the cross-section — the in-repo check on the EIM's own approximation |
+| `etalon_photonics.components` | S-parameter models: straight, directional coupler, Y-branch, phase shifters, grating coupler, all-pass & add-drop rings (Bogaerts 2012), analytic MZI |
+| `etalon_photonics.circuit` | Netlist-level S-matrix circuit solver (subnetwork reduction with proper feedback handling — rings built from couplers work) |
+| `etalon_photonics.link` | IM-DD link-budget engine: Q-from-BER (NRZ/PAM4), thermal-limited sensitivity, ER/RIN/shot/crosstalk/PDL penalties, waterfall reports, energy-per-bit breakdowns, CPO & pluggable presets |
+| `etalon_photonics.wdm` | Channel plans (CWDM4/LR4/DWDM grids), ring FSR/channel-count limits, thermal-tuning power, barrel-shift channel-assignment optimizer, aggregate crosstalk |
+| `etalon_photonics.thermal` | Ring-to-ring thermal crosstalk: spatial heat-coupling kernel from ring pitch, self-consistent coupled heater-power solve, and a screening bound that flags when a thermally-isolated channel assignment is physically unlockable once neighbor heat is accounted for |
+| `etalon_photonics.montecarlo` | Monte Carlo corner analysis: truncated-normal/uniform parameters, correlated (common+differential) variation, per-lane and all-lanes-pass module yield, sensitivity ranking, and whole-bank (jointly-coupled) yield for metrics — like thermal-crosstalk-coupled ring tuning — that can't be decomposed lane-by-lane |
+| `etalon_photonics.isi` | E-O-E bridge: computed PAM eye-closure (ISI) penalty of a passive filter response S21(λ) — exhaustive de Bruijn time-domain eye, feeds `LinkBudget.penalties_db` |
+| `etalon_photonics.equalize` | Closed-form zero-forcing FFE tap solver: symbol-spaced pulse response of a passive filter, Toeplitz tap solve, and the noise-enhancement penalty equalization always costs — the priced version of `etalon_photonics.isi`'s "treat as an upper bound with an FFE receiver" caveat |
+| `etalon_photonics.extract` | Parameter extraction: least-squares fitting of component/circuit models to measured transmission spectra (the calibration on-ramp) |
+| `etalon_photonics.touchstone` | Touchstone (.sNp) file I/O: read/write measured or foundry-exported S-parameter data (MA/DB/RI, all frequency units) into the same `ports` + `s_params(wl)` protocol as any Etalon component — the real-data on-ramp into `etalon_photonics.extract`/`etalon_photonics.circuit` |
+| `etalon_photonics.reliability` | Laser reliability arithmetic: Arrhenius acceleration, FIT/MTTF, lognormal wear-out, N-laser module survival, wall-plug-efficiency thermal derating |
 
 ## Quick taste
 
 ```python
-from etalon import link, waveguide
+from etalon_photonics import link, waveguide
 
 wg = waveguide.Waveguide(width_um=0.5, height_um=0.22)
 print(wg.neff(1.55), wg.group_index(1.55))   # 2.49, 4.02 (EIM)
@@ -111,8 +111,8 @@ toward is calibration against measured wafer/test data.
 Of the five bottlenecks [docs/RESEARCH.md](docs/RESEARCH.md) names as the industry's
 unclaimed middle (lasers, packaging/fiber-attach, test/known-good-die, ring thermal
 tuning, yield/variability), Etalon now directly models three: thermal tuning
-(`etalon.thermal`), yield/variability (`etalon.montecarlo`, including whole-bank yield),
-and the test/known-good-die on-ramp (`etalon.touchstone` for real measured data,
+(`etalon_photonics.thermal`), yield/variability (`etalon_photonics.montecarlo`, including whole-bank yield),
+and the test/known-good-die on-ramp (`etalon_photonics.touchstone` for real measured data,
 `etalon.montecarlo.run_bank` for the max-of-N bank-scrap statistic). Lasers and
 packaging/fiber-attach are hardware problems outside a software toolkit's scope and
 stay that way on purpose.
@@ -120,7 +120,7 @@ stay that way on purpose.
 ## Repo map
 
 ```
-src/etalon/          the toolkit
+src/etalon_photonics/   the toolkit
 tests/               434 tests, physics anchored to analytic/known values
 examples/            thirteen runnable demos
 examples/data/       vendored real foundry-process S-parameter data

@@ -55,9 +55,9 @@ def table(headers: list[str], rows: list[list[str]], widths: list[int]) -> None:
 
 def main() -> int:
     try:
-        from etalon.link import energy_per_bit_pj, preset_cpo_optical_io, preset_pluggable_dr4
+        from etalon_photonics.link import energy_per_bit_pj, preset_cpo_optical_io, preset_pluggable_dr4
     except ImportError as exc:
-        print(f"This example needs etalon.link ({exc}).")
+        print(f"This example needs etalon_photonics.link ({exc}).")
         return 1
 
     header("Etalon 12 — reproducing NVIDIA's 3.5x CPO power-efficiency claim")
@@ -117,7 +117,7 @@ def main() -> int:
     print("   die-to-optics), the same assumption examples/03 uses. NVIDIA's own")
     print("   number for their gearbox-free architecture could differ.")
     print("4. THERMAL TUNING. The CPO preset carries an explicit 2.0 mW/lane ring")
-    print("   heater tax (etalon.thermal's whole reason for existing) that a")
+    print("   heater tax (etalon_photonics.thermal's whole reason for existing) that a")
     print("   marketing pJ/bit number may or may not include explicitly.")
 
     header("Sensitivity: how close can defensible assumptions get to 3.5x?")

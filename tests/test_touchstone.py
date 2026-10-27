@@ -1,9 +1,9 @@
-"""Tests for etalon.touchstone (Touchstone .sNp file I/O)."""
+"""Tests for etalon_photonics.touchstone (Touchstone .sNp file I/O)."""
 
 import numpy as np
 import pytest
 
-from etalon import touchstone as ts
+from etalon_photonics import touchstone as ts
 
 C_UM_HZ = 2.99792458e14
 
@@ -312,9 +312,9 @@ class TestWriteReadRoundTrip:
 
 class TestIntegrationWithExtractAndCircuit:
     def test_usable_as_extract_measured_source(self, tmp_path):
-        """A TouchstoneData quacks like a component model for etalon.extract."""
-        from etalon.extract import fit_transmission
-        from etalon.components import RingAllPass
+        """A TouchstoneData quacks like a component model for etalon_photonics.extract."""
+        from etalon_photonics.extract import fit_transmission
+        from etalon_photonics.components import RingAllPass
 
         wl = np.linspace(1.545, 1.555, 401)
         truth = RingAllPass(
@@ -349,7 +349,7 @@ class TestIntegrationWithExtractAndCircuit:
 
     def test_usable_in_circuit(self):
         """TouchstoneData exposes ports + s_params like any Circuit-eligible model."""
-        from etalon.circuit import Circuit
+        from etalon_photonics.circuit import Circuit
 
         freq = np.array([190e12, 195e12, 200e12])
         s = np.zeros((3, 2, 2), dtype=complex)
@@ -367,7 +367,7 @@ class TestIntegrationWithExtractAndCircuit:
 
     def test_two_touchstone_instances_cascaded_via_connect(self):
         """Two measured components chained through Circuit.connect()."""
-        from etalon.circuit import Circuit
+        from etalon_photonics.circuit import Circuit
 
         freq = np.array([190e12, 195e12, 200e12])
 

@@ -80,9 +80,9 @@ def maybe_plot(points: list[tuple], front: list[tuple]) -> None:
 
 def main() -> int:
     try:
-        from etalon.link import Signaling, energy_per_bit_pj, preset_cpo_optical_io
+        from etalon_photonics.link import Signaling, energy_per_bit_pj, preset_cpo_optical_io
     except ImportError as exc:
-        print(f"This example needs etalon.link ({exc}); re-run after integration.")
+        print(f"This example needs etalon_photonics.link ({exc}); re-run after integration.")
         return 1
 
     base = preset_cpo_optical_io()

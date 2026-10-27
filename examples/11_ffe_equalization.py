@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """Etalon example 11 — FFE rescues margin the unequalized ISI penalty eats.
 
-Example 07 showed etalon.isi's ISI penalty growing fast once the symbol
+Example 07 showed etalon_photonics.isi's ISI penalty growing fast once the symbol
 rate becomes a sizable fraction of a demux passband's linewidth, and its
 own docstring names the gap: that penalty assumes NO receiver
 equalization, so it is only an upper bound on what an FFE-equipped
 receiver actually sees. This script pushes the same 4-channel ring demux
 to 106.25 GBd NRZ (a real 106G-class lane rate) where the unequalized eye
-is open but paying a real ISI penalty, then asks etalon.equalize what a
+is open but paying a real ISI penalty, then asks etalon_photonics.equalize what a
 zero-forcing FFE recovers — and books the honest cost: FFE cancels ISI
 but always pays for it in noise enhancement. Both numbers, not one.
 
-Scope reminder (see etalon.equalize): zero-forcing (not MMSE) FFE, no
+Scope reminder (see etalon_photonics.equalize): zero-forcing (not MMSE) FFE, no
 DFE, no adaptive convergence — architecture-level budgeting, not signoff.
 """
 
@@ -22,7 +22,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from etalon.waveguide import Waveguide
+from etalon_photonics.waveguide import Waveguide
 
 CENTER_UM = 1.55
 N_CH = 4
@@ -82,15 +82,15 @@ def build_demux(RingAddDrop, Circuit, channels_um: list[float]):
 
 def main() -> int:
     try:
-        from etalon import equalize, isi, wdm
-        from etalon.circuit import Circuit
-        from etalon.components import RingAddDrop
-        from etalon.link import LossElement, preset_cpo_optical_io
+        from etalon_photonics import equalize, isi, wdm
+        from etalon_photonics.circuit import Circuit
+        from etalon_photonics.components import RingAddDrop
+        from etalon_photonics.link import LossElement, preset_cpo_optical_io
     except ImportError as exc:
         print(f"This example needs several etalon modules, not all built yet ({exc}).")
         return 1
 
-    header("Etalon 11 — FFE vs. an unequalized ISI penalty (etalon.equalize)")
+    header("Etalon 11 — FFE vs. an unequalized ISI penalty (etalon_photonics.equalize)")
 
     plan = wdm.ChannelPlan.dwdm(CENTER_UM, SPACING_GHZ, N_CH)
     channels = list(plan.centers_um)
@@ -104,18 +104,18 @@ def main() -> int:
     wl = np.linspace(ch_um - span_um, ch_um + span_um, 200_001)
     t = circuit.transmission(wl, "in", f"drop{ISI_CHANNEL}")
 
-    header(f"Unequalized eye at {BAUD_GBD:g} GBd NRZ (etalon.isi)")
+    header(f"Unequalized eye at {BAUD_GBD:g} GBd NRZ (etalon_photonics.isi)")
     unequalized = isi.filter_isi_penalty_db(
         wl, t, center_wl_um=ch_um, rate_gbd=BAUD_GBD, levels=2, samples_per_symbol=SPS,
     )
     pen_str = "CLOSED (inf dB)" if math.isinf(unequalized.penalty_db) else f"{unequalized.penalty_db:.3f} dB"
     print(f"IL {unequalized.insertion_loss_db:.3f} dB, ISI penalty: {pen_str}")
     print("Real margin, eaten by a passband that's narrow relative to this baud —")
-    print("etalon.isi's own docstring says this number is only an upper bound")
+    print("etalon_photonics.isi's own docstring says this number is only an upper bound")
     print("'with an FFE-based receiver'; let's compute what that receiver actually")
     print("needs to recover it.")
 
-    header("Closed-form zero-forcing FFE taps (etalon.equalize)")
+    header("Closed-form zero-forcing FFE taps (etalon_photonics.equalize)")
     rows = []
     results = {}
     for n_post in (2, 4, 6, 8):
@@ -168,7 +168,7 @@ def main() -> int:
     print(f"Equalized margin:   {equalized.margin_db:+.2f} dB "
           f"(~0 dB residual ISI, {best.noise_enhancement_db:+.3f} dB noise "
           f"enhancement instead) — net {delta:+.2f} dB from equalizing.")
-    print("\nThis is the honest version of etalon.isi's 'FFE receiver: treat as an")
+    print("\nThis is the honest version of etalon_photonics.isi's 'FFE receiver: treat as an")
     print("upper bound' caveat — not just asserting the ISI penalty shrinks, but")
     print("pricing what shrinking it costs.")
     print()

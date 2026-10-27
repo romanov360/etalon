@@ -1,3 +1,3 @@
-# etalon.components
+# etalon_photonics.components
 
-::: etalon.components
+::: etalon_photonics.components

@@ -1,3 +1,3 @@
-# etalon.extract
+# etalon_photonics.extract
 
-::: etalon.extract
+::: etalon_photonics.extract

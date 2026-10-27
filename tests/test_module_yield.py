@@ -1,4 +1,4 @@
-"""Tests for module-level (max-of-N) yield in etalon.montecarlo.
+"""Tests for module-level (max-of-N) yield in etalon_photonics.montecarlo.
 
 Anchors are analytic: independent lanes give module_yield = lane_yield**N,
 pure common mode gives module_yield = lane_yield exactly, mixed draws have
@@ -11,7 +11,7 @@ import math
 import numpy as np
 import pytest
 
-from etalon import montecarlo as mc
+from etalon_photonics import montecarlo as mc
 
 
 def identity(x):

@@ -1,3 +1,3 @@
-# etalon.thermal
+# etalon_photonics.thermal
 
-::: etalon.thermal
+::: etalon_photonics.thermal

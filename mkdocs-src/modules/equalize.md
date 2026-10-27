@@ -1,3 +1,3 @@
-# etalon.equalize
+# etalon_photonics.equalize
 
-::: etalon.equalize
+::: etalon_photonics.equalize

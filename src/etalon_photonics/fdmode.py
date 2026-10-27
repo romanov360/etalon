@@ -3,7 +3,7 @@
 This module solves the scalar-per-polarization ("semi-vectorial") wave
 equation on the waveguide cross-section with finite differences, giving
 Etalon an in-library reference against which its own effective index
-method (:class:`etalon.waveguide.Waveguide`) can be checked.
+method (:class:`etalon_photonics.waveguide.Waveguide`) can be checked.
 
 Physics
 -------
@@ -242,7 +242,7 @@ def solve_modes(
     width_um, height_um : core cross-section in um.
     wl_um : vacuum wavelength in um.
     slab_um : residual slab thickness in um for a rib; 0 for a strip.
-    core, cladding, box : material names for :mod:`etalon.materials`
+    core, cladding, box : material names for :mod:`etalon_photonics.materials`
         (cladding = top/side, box = buried oxide below the core).
     polarization : 'TE' (dominant Ex) or 'TM' (dominant Ey).
     n_modes : maximum number of guided modes to return.

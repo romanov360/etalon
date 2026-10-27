@@ -1,3 +1,3 @@
-# etalon.touchstone
+# etalon_photonics.touchstone
 
-::: etalon.touchstone
+::: etalon_photonics.touchstone

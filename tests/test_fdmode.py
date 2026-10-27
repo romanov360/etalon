@@ -1,10 +1,10 @@
-"""Tests for etalon.fdmode: semi-vectorial finite-difference mode solver.
+"""Tests for etalon_photonics.fdmode: semi-vectorial finite-difference mode solver.
 
 Physics anchors, all independent of the solver's own output:
 
 - Wide-strip limit: a 6.0 x 0.22 um strip approaches the analytic
   three-layer slab TE0 index (2.848 at 1.55 um) from
-  :func:`etalon.waveguide.slab_neffs` (exact transcendental solve).
+  :func:`etalon_photonics.waveguide.slab_neffs` (exact transcendental solve).
 - Grid convergence: n_eff is O(h^2); halving the pitch must move it by
   well under the accuracy claim.
 - Bounds and ordering: every guided n_eff lies strictly between the
@@ -26,9 +26,9 @@ import functools
 import numpy as np
 import pytest
 
-from etalon import materials
-from etalon.fdmode import FdMode, solve_modes
-from etalon.waveguide import Waveguide, slab_neffs
+from etalon_photonics import materials
+from etalon_photonics.fdmode import FdMode, solve_modes
+from etalon_photonics.waveguide import Waveguide, slab_neffs
 
 WL = 1.55
 N_SI = materials.n_si(WL)

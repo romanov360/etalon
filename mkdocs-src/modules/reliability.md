@@ -1,3 +1,3 @@
-# etalon.reliability
+# etalon_photonics.reliability
 
-::: etalon.reliability
+::: etalon_photonics.reliability

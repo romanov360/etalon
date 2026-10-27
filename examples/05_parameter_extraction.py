@@ -4,7 +4,7 @@
 Pretends a probe station measured the through- and drop-port power spectra
 of an add-drop microring (synthesized here from known ground truth plus
 0.05 dB rms Gaussian noise, spanning ~3 FSRs), then calibrates a
-RingAddDrop model to the trace with etalon.extract.fit_ring_add_drop. The
+RingAddDrop model to the trace with etalon_photonics.extract.fit_ring_add_drop. The
 script prints a true-vs-recovered parameter table with the fit's residual
 rms against the injected noise floor, and saves an overlay plot (measured
 points, fitted curves, residuals) to examples/out/.
@@ -142,10 +142,10 @@ def maybe_plot(wl, thru_db, drop_db, fit_thru, fit_drop) -> None:
 
 def main() -> int:
     try:
-        from etalon.components import RingAddDrop
-        from etalon.extract import fit_ring_add_drop
+        from etalon_photonics.components import RingAddDrop
+        from etalon_photonics.extract import fit_ring_add_drop
     except ImportError as exc:
-        print("This example needs etalon.components and etalon.extract, which")
+        print("This example needs etalon_photonics.components and etalon_photonics.extract, which")
         print(f"are not built in this checkout yet ({exc}).")
         return 1
 
@@ -186,7 +186,7 @@ def main() -> int:
     print()
     print(fit.report())
 
-    print("\nIdentifiability notes (see etalon.extract docstrings):")
+    print("\nIdentifiability notes (see etalon_photonics.extract docstrings):")
     print(f"  * neff0 is recovered modulo the resonance order "
           f"(wl0/L = {WL0_UM / CIRC_UM * 1e3:.2f} m-units per order);")
     print("    the layout circumference is held fixed because neff0*L is all")

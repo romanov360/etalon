@@ -5,7 +5,7 @@ Pretends a foundry PDK or wafer-probe VNA handed back a .s2p file for an
 add-drop ring (synthesized here from known ground truth, exported to a
 REAL Touchstone file on disk, in DB format like most VNA exports), then
 reads that file back exactly as an external tool would produce it, and
-calibrates a RingAddDrop model to it with etalon.extract — closing the
+calibrates a RingAddDrop model to it with etalon_photonics.extract — closing the
 loop from "file on disk" to "calibrated Etalon model" with no hand-built
 numpy arrays in between.
 """
@@ -38,11 +38,11 @@ def header(title: str) -> None:
 
 def main() -> int:
     try:
-        from etalon.components import RingAddDrop
-        from etalon.extract import fit_ring_add_drop
-        from etalon import touchstone as ts
+        from etalon_photonics.components import RingAddDrop
+        from etalon_photonics.extract import fit_ring_add_drop
+        from etalon_photonics import touchstone as ts
     except ImportError as exc:
-        print(f"This example needs etalon.components/extract/touchstone ({exc}).")
+        print(f"This example needs etalon_photonics.components/extract/touchstone ({exc}).")
         return 1
 
     header("Etalon 09 — Touchstone file round trip")
@@ -101,7 +101,7 @@ def main() -> int:
     # measurement. fit_ring_add_drop wants both through and drop; since a
     # probe with only a drop tap is common, fit through the general
     # fit_transmission entry point on drop alone instead.
-    from etalon.extract import fit_transmission
+    from etalon_photonics.extract import fit_transmission
 
     x0 = {
         "kappa1_power": 0.09, "kappa2_power": 0.05,
@@ -126,7 +126,7 @@ def main() -> int:
     print()
     print(fit.report())
 
-    print("\nThis is the strategic point of etalon.touchstone: a foundry PDK export,")
+    print("\nThis is the strategic point of etalon_photonics.touchstone: a foundry PDK export,")
     print("a VNA trace, or a wafer-probe measurement all speak this file format —")
     print("the path from 'file a fab handed you' to 'calibrated Etalon model' is")
     print("now three function calls (read_touchstone -> transmission_db ->")

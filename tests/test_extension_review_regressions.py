@@ -14,10 +14,10 @@ import warnings
 import numpy as np
 import pytest
 
-from etalon import extract, link, montecarlo as mc
-from etalon.components import DirectionalCoupler
-from etalon.fdmode import solve_modes
-from etalon.waveguide import slab_neffs
+from etalon_photonics import extract, link, montecarlo as mc
+from etalon_photonics.components import DirectionalCoupler
+from etalon_photonics.fdmode import solve_modes
+from etalon_photonics.waveguide import slab_neffs
 
 
 # --- R2: joint RIN + shot noise solve ----------------------------------------
@@ -82,7 +82,7 @@ def test_rib_modes_are_pad_invariant_and_above_slab_line():
         assert ma.neff == pytest.approx(mb.neff, abs=1e-5)
     # everything returned must lie above the residual slab's TE line —
     # below it is lateral radiation discretized by the Dirichlet wall
-    from etalon import materials
+    from etalon_photonics import materials
 
     n_si = float(materials.index("si", 1.55))
     n_ox = float(materials.index("sio2", 1.55))
@@ -107,7 +107,7 @@ def test_unbounded_fit_raises_informative_error():
 
 
 def test_fit_ring_add_drop_fixed_parameter():
-    from etalon.components import RingAddDrop
+    from etalon_photonics.components import RingAddDrop
 
     true = dict(
         circumference_um=200.0,

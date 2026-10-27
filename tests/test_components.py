@@ -1,9 +1,9 @@
-"""Tests for etalon.components against analytic/known values."""
+"""Tests for etalon_photonics.components against analytic/known values."""
 
 import numpy as np
 import pytest
 
-from etalon.components import (
+from etalon_photonics.components import (
     MZI,
     DirectionalCoupler,
     GratingCoupler,
@@ -17,7 +17,7 @@ from etalon.components import (
     loaded_q,
     ring_fsr_um,
 )
-from etalon.waveguide import Waveguide
+from etalon_photonics.waveguide import Waveguide
 
 WL = np.linspace(1.50, 1.60, 401)
 NEFF0, NG, WL0 = 2.4, 4.2, 1.55

@@ -14,9 +14,9 @@ import warnings
 import numpy as np
 import pytest
 
-from etalon import components, link, materials, wdm
-from etalon.circuit import Circuit
-from etalon.waveguide import slab_neffs
+from etalon_photonics import components, link, materials, wdm
+from etalon_photonics.circuit import Circuit
+from etalon_photonics.waveguide import slab_neffs
 
 
 # --- F1: RIN penalty evaluated at the true top level -------------------------

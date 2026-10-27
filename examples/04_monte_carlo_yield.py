@@ -9,7 +9,7 @@ parametric yield and the parameters that dominate the margin spread.
 
 from dataclasses import replace
 
-from etalon import link, montecarlo as mc
+from etalon_photonics import link, montecarlo as mc
 
 
 def build_link(p: dict[str, float]) -> link.LinkBudget:

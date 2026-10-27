@@ -1,4 +1,4 @@
-"""Tests for etalon.extract — parameter recovery on synthetic spectra.
+"""Tests for etalon_photonics.extract — parameter recovery on synthetic spectra.
 
 Physics anchoring: spectra are synthesized from known ground-truth
 parameters, corrupted with seeded Gaussian noise, and the fit is required
@@ -10,9 +10,9 @@ also has closed-form targets (|S|^2 = coupling * 10^(-loss/10)).
 import numpy as np
 import pytest
 
-from etalon.circuit import Circuit
-from etalon.components import DirectionalCoupler, RingAddDrop, Straight
-from etalon.extract import FitResult, fit_ring_add_drop, fit_transmission
+from etalon_photonics.circuit import Circuit
+from etalon_photonics.components import DirectionalCoupler, RingAddDrop, Straight
+from etalon_photonics.extract import FitResult, fit_ring_add_drop, fit_transmission
 
 # --- ground truth ring (shared by several tests) ----------------------------
 

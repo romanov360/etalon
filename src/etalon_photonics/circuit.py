@@ -39,7 +39,7 @@ class SParamModel(Protocol):
     """The duck-typed model protocol this module's docstring describes.
 
     Anything with these two attributes works as a :meth:`Circuit.add`
-    instance — :mod:`etalon.components` models, :class:`etalon.touchstone.
+    instance — :mod:`etalon_photonics.components` models, :class:`etalon_photonics.touchstone.
     TouchstoneData`, or a user's own class. No shared base class is
     required or assumed; this Protocol exists for static typing and
     documentation, not runtime dispatch (``add`` still checks via

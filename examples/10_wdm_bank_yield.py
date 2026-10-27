@@ -5,10 +5,10 @@ Example 08 asked: for ONE as-fabricated ring bank, does the crosstalk-blind
 assignment even lock? This script asks the manufacturing question: across a
 population of dies with correlated (die-level + per-ring) fabrication
 offset, what fraction of ring banks lock at all, and of those that lock,
-what fraction land within a heater-power budget? etalon.montecarlo.run_bank
+what fraction land within a heater-power budget? etalon_photonics.montecarlo.run_bank
 is the piece that makes this possible — wdm.optimize_ring_assignment and
 thermal.solve_coupled_powers are both whole-bank joint solves, so a trial
-can't be decomposed ring-by-ring the way etalon.montecarlo.run_module
+can't be decomposed ring-by-ring the way etalon_photonics.montecarlo.run_module
 decomposes lane failures.
 """
 
@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from etalon import montecarlo as mc
-from etalon import thermal, wdm
+from etalon_photonics import montecarlo as mc
+from etalon_photonics import thermal, wdm
 
 N_RINGS = 8
 FSR_NM = 3.2

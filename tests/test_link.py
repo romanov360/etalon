@@ -1,10 +1,10 @@
-"""Tests for etalon.link: BER/Q math, penalties, budgets, energy, presets."""
+"""Tests for etalon_photonics.link: BER/Q math, penalties, budgets, energy, presets."""
 
 import math
 
 import pytest
 
-from etalon.link import (
+from etalon_photonics.link import (
     LinkBudget,
     Laser,
     LossElement,

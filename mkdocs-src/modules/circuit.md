@@ -1,3 +1,3 @@
-# etalon.circuit
+# etalon_photonics.circuit
 
-::: etalon.circuit
+::: etalon_photonics.circuit

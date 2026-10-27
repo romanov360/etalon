@@ -1,11 +1,11 @@
-"""Tests for etalon.montecarlo against exact distributional facts."""
+"""Tests for etalon_photonics.montecarlo against exact distributional facts."""
 
 import math
 
 import numpy as np
 import pytest
 
-from etalon import montecarlo as mc
+from etalon_photonics import montecarlo as mc
 
 
 def test_normal_moments():

@@ -6,7 +6,7 @@ prints effective-index / group-index tables for the quasi-TE and quasi-TM
 fundamental modes, locates the single-mode boundary with the effective index
 method, and tabulates the bend-loss heuristic.
 
-Uses only the core modules (etalon.materials, etalon.waveguide), so it runs
+Uses only the core modules (etalon_photonics.materials, etalon_photonics.waveguide), so it runs
 on a bare checkout. Units: um for wavelength/geometry, dB for loss.
 """
 
@@ -16,8 +16,8 @@ from pathlib import Path
 
 import numpy as np
 
-from etalon import materials
-from etalon.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
+from etalon_photonics import materials
+from etalon_photonics.waveguide import Waveguide, bend_loss_db_per_90deg, slab_neffs
 
 WL_UM = 1.55
 HEIGHT_UM = 0.220  # standard SOI device layer

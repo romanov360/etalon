@@ -1,3 +1,3 @@
-# etalon.isi
+# etalon_photonics.isi
 
-::: etalon.isi
+::: etalon_photonics.isi

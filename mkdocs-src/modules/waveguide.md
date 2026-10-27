@@ -1,3 +1,3 @@
-# etalon.waveguide
+# etalon_photonics.waveguide
 
-::: etalon.waveguide
+::: etalon_photonics.waveguide

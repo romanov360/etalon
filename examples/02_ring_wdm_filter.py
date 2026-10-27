@@ -7,9 +7,9 @@ target free spectral range via the group index of a 400 x 220 nm SOI strip,
 each ring is then snapped onto its channel by picking an integer azimuthal
 mode number. The script prints an FSR/Q/insertion-loss table, the full 4 x 4
 drop-port crosstalk matrix from the RingAddDrop spectra, and a thermal-tuning
-power budget via the etalon.wdm helpers.
+power budget via the etalon_photonics.wdm helpers.
 
-Requires etalon.components and etalon.wdm (in addition to the core modules).
+Requires etalon_photonics.components and etalon_photonics.wdm (in addition to the core modules).
 Units: um for wavelength/geometry, dB for loss, mW for heater power.
 """
 
@@ -19,8 +19,8 @@ from pathlib import Path
 
 import numpy as np
 
-from etalon.constants import linear_to_db
-from etalon.waveguide import Waveguide, bend_loss_db_per_90deg
+from etalon_photonics.constants import linear_to_db
+from etalon_photonics.waveguide import Waveguide, bend_loss_db_per_90deg
 
 # Design targets ---------------------------------------------------------
 WIDTH_UM = 0.40          # O-band single-mode strip
@@ -165,10 +165,10 @@ def maybe_plot(rings, channels_um: list[float]) -> None:
 
 def main() -> int:
     try:
-        from etalon import wdm
-        from etalon.components import RingAddDrop
+        from etalon_photonics import wdm
+        from etalon_photonics.components import RingAddDrop
     except ImportError as exc:
-        print("This example needs etalon.components and etalon.wdm, which are")
+        print("This example needs etalon_photonics.components and etalon_photonics.wdm, which are")
         print(f"not built in this checkout yet ({exc}).")
         print("Re-run after integration; example 01 runs on the core modules alone.")
         return 1
@@ -280,7 +280,7 @@ def main() -> int:
           "targets < -20 dB.")
 
     # --- thermal tuning --------------------------------------------------------
-    header("Thermal tuning budget (etalon.wdm helpers)")
+    header("Thermal tuning budget (etalon_photonics.wdm helpers)")
     fsr_nm = FSR_TARGET_UM * 1e3
     ng_mid = designs[N_CH // 2]["ng"]
     shift = attempt("wdm.resonance_shift_nm_per_k",

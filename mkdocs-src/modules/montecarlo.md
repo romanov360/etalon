@@ -1,3 +1,3 @@
-# etalon.montecarlo
+# etalon_photonics.montecarlo
 
-::: etalon.montecarlo
+::: etalon_photonics.montecarlo

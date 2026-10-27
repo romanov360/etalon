@@ -10,8 +10,8 @@ import math
 import numpy as np
 import pytest
 
-from etalon import components, link, materials, montecarlo as mc, waveguide, wdm
-from etalon.circuit import Circuit
+from etalon_photonics import components, link, materials, montecarlo as mc, waveguide, wdm
+from etalon_photonics.circuit import Circuit
 
 
 # --- finding: ring phase conjugation broke composition ---------------------

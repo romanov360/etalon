@@ -1,10 +1,10 @@
-"""Tests for etalon.wdm (channel plans, tuning power, crosstalk)."""
+"""Tests for etalon_photonics.wdm (channel plans, tuning power, crosstalk)."""
 
 import numpy as np
 import pytest
 
-from etalon import wdm
-from etalon.wdm import ChannelPlan
+from etalon_photonics import wdm
+from etalon_photonics.wdm import ChannelPlan
 
 
 C_UM_GHZ = 2.99792458e5

@@ -3,7 +3,7 @@
 
 The E-O-E bridge: a 4-channel DWDM ring demux is composed with the circuit
 solver, the drop-port field response S21(lambda) of one channel is fed to
-etalon.isi.filter_isi_penalty_db, and the resulting eye-closure (ISI)
+etalon_photonics.isi.filter_isi_penalty_db, and the resulting eye-closure (ISI)
 penalty enters the link budget as a COMPUTED penalties_db entry — the kind
 of allocation that is otherwise hand-entered (cf. the DR4 preset's
 'isi_equalization': 1.0 guess). The script sweeps NRZ baud through the drop
@@ -11,7 +11,7 @@ port (table of IL and ISI penalty), then rebuilds preset_cpo_optical_io()'s
 waterfall with BOTH numbers booked once each — the drop-port IL as a path
 LossElement, the ISI penalty in penalties_db — and prints the margin delta.
 
-Scope reminder (see etalon.isi): passive linear filtering downstream of the
+Scope reminder (see etalon_photonics.isi): passive linear filtering downstream of the
 modulator, chirp-free ideal PAM — budgeting-grade eye closure, not TDECQ.
 Units: um for wavelength, GBd for symbol rate, dB for loss/penalty.
 """
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 
-from etalon.waveguide import Waveguide
+from etalon_photonics.waveguide import Waveguide
 
 # Design targets ---------------------------------------------------------
 CENTER_UM = 1.55          # C-band DWDM demux for a CPO-style link
@@ -152,13 +152,13 @@ def maybe_plot(wl, drop_db, ch_um, bauds, penalties) -> None:
 
 def main() -> int:
     try:
-        from etalon import isi, wdm
-        from etalon.circuit import Circuit
-        from etalon.components import RingAddDrop
-        from etalon.link import LossElement, preset_cpo_optical_io
+        from etalon_photonics import isi, wdm
+        from etalon_photonics.circuit import Circuit
+        from etalon_photonics.components import RingAddDrop
+        from etalon_photonics.link import LossElement, preset_cpo_optical_io
     except ImportError as exc:
-        print("This example needs etalon.isi, etalon.circuit, etalon.components,")
-        print(f"etalon.wdm and etalon.link, which are not all built yet ({exc}).")
+        print("This example needs etalon_photonics.isi, etalon_photonics.circuit, etalon_photonics.components,")
+        print(f"etalon_photonics.wdm and etalon_photonics.link, which are not all built yet ({exc}).")
         print("Re-run after integration; example 01 runs on the core modules alone.")
         return 1
 
@@ -241,7 +241,7 @@ def main() -> int:
           f"({base.margin_db:+.2f} -> {upgraded.margin_db:+.2f} dB) —")
     print(f"{result_32.insertion_loss_db:.3f} dB flat loss in the path plus "
           f"{result_32.penalty_db:.3f} dB eye closure in penalties_db.")
-    print("etalon.isi reports the two separately precisely so each is booked")
+    print("etalon_photonics.isi reports the two separately precisely so each is booked")
     print("exactly once (a preset path may or may not already carry the IL).")
 
     maybe_plot(wl, drop_db, ch_um, BAUDS_GBD, penalties)
